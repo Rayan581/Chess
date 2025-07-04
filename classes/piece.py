@@ -24,3 +24,33 @@ class Piece:
         scaled_texture = pygame.transform.scale(
             self.texture, (cell_size, cell_size))
         screen.blit(scaled_texture, (x, y))
+
+    def rook_moves(self, board):
+        moves = []
+
+        # Right
+        for i in range(self.x + 1, 8):
+            if board.piece_at_cell(i, self.y):
+                break
+            moves.append((i, self.y))
+        # Left
+        for i in range(self.x - 1, -1, -1):
+            if board.piece_at_cell(i, self.y):
+                break
+            moves.append((i, self.y))
+        # Up
+        for i in range(self.y - 1, -1, -1):
+            if board.piece_at_cell(self.x, i):
+                break
+            moves.append((self.x, i))
+        # Down
+        for i in range(self.y + 1, 8):
+            if board.piece_at_cell(self.x, i):
+                break
+            moves.append((self.x, i))
+        
+        return moves
+
+    def get_available_moves(self, board):
+        if self.name == 'rook':
+            return self.rook_moves(board)

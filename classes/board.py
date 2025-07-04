@@ -3,6 +3,23 @@ from .piece import Piece
 
 LIGHT_SQUARE = (238, 238, 210)
 DARK_SQUARE = (118, 150, 86)
+SELECTED_COLOR = (255, 255, 102)
+GLOWY_RED = (255, 70, 70)
+
+
+def draw_glow_square(screen, x, y, size, fill_color, glow_color, glow_thickness):
+    # Draw the filled center square
+    pygame.draw.rect(screen, fill_color, (x, y, size, size))
+
+    # Draw the glow as fading rectangles
+    for i in range(1, glow_thickness + 1):
+        alpha = 255 * (1 - i / (glow_thickness + 1))
+        glow_surf = pygame.Surface(
+            (size + i * 2, size + i * 2), pygame.SRCALPHA)
+        faded_color = (*glow_color, int(alpha))
+        pygame.draw.rect(glow_surf, faded_color,
+                         (0, 0, size + i * 2, size + i * 2), width=1)
+        screen.blit(glow_surf, (x - i, y - i))
 
 
 class Board:
@@ -10,6 +27,9 @@ class Board:
         self.cell_size = cell_size
         self.pieces = {}
         self.initialize_pieces()
+        self.turn = 'white'
+        self.selected_cell = None
+        self.available_moves = []
 
     def initialize_pieces(self):
         self.pieces = {}
@@ -33,15 +53,26 @@ class Board:
             y = 0
             p_y = 1
 
+        self.pieces['white'][8].y = 5
+
     def __draw_board(self, screen):
         for i in range(8):
             for j in range(8):
-                if (i + j) % 2 == 0:
-                    pygame.draw.rect(screen, LIGHT_SQUARE, (j * self.cell_size,
-                                     i * self.cell_size, self.cell_size, self.cell_size))
-                else:
-                    pygame.draw.rect(screen, DARK_SQUARE, (j * self.cell_size,
-                                     i * self.cell_size, self.cell_size, self.cell_size))
+                cell_color = LIGHT_SQUARE if (i + j) % 2 == 0 else DARK_SQUARE
+                pygame.draw.rect(screen, cell_color, (j * self.cell_size,
+                                                      i * self.cell_size, self.cell_size, self.cell_size))
+
+        if self.selected_cell:
+            x, y = self.selected_cell
+            pygame.draw.rect(screen, SELECTED_COLOR, (x * self.cell_size,
+                                                  y * self.cell_size, self.cell_size, self.cell_size))
+
+        if self.available_moves:
+            for move in self.available_moves:
+                x, y = move
+                cell_color = LIGHT_SQUARE if (x + y) % 2 == 0 else DARK_SQUARE
+                draw_glow_square(screen, x * self.cell_size, y * self.cell_size,
+                                 self.cell_size, cell_color, GLOWY_RED, 5)
 
     def __draw_pieces(self, screen):
         for color in self.pieces.keys():
@@ -51,3 +82,23 @@ class Board:
     def draw(self, screen):
         self.__draw_board(screen)
         self.__draw_pieces(screen)
+
+    def select_piece(self, mouse_x, mouse_y):
+        cell_x = mouse_x // self.cell_size
+        cell_y = mouse_y // self.cell_size
+
+        for piece in self.pieces[self.turn]:
+            if piece.x == cell_x and piece.y == cell_y:
+                self.available_moves = piece.get_available_moves(self)
+                self.selected_cell = (cell_x, cell_y)
+                return
+
+        self.selected_cell = None
+        self.available_moves = []
+
+    def piece_at_cell(self, x, y):
+        for color in self.pieces.keys():
+            for piece in self.pieces[color]:
+                if piece.x == x and piece.y == y:
+                    return True
+        return False
