@@ -4,6 +4,7 @@ from .piece import Piece
 LIGHT_SQUARE = (238, 238, 210)
 DARK_SQUARE = (118, 150, 86)
 
+
 class Board:
     def __init__(self, cell_size):
         self.cell_size = cell_size
@@ -36,9 +37,11 @@ class Board:
         for i in range(8):
             for j in range(8):
                 if (i + j) % 2 == 0:
-                    pygame.draw.rect(screen, LIGHT_SQUARE, (j * self.cell_size, i * self.cell_size, self.cell_size, self.cell_size))
+                    pygame.draw.rect(screen, LIGHT_SQUARE, (j * self.cell_size,
+                                     i * self.cell_size, self.cell_size, self.cell_size))
                 else:
-                    pygame.draw.rect(screen, DARK_SQUARE, (j * self.cell_size, i * self.cell_size, self.cell_size, self.cell_size))
+                    pygame.draw.rect(screen, DARK_SQUARE, (j * self.cell_size,
+                                     i * self.cell_size, self.cell_size, self.cell_size))
 
     def __draw_pieces(self, screen):
         for color in self.pieces.keys():
