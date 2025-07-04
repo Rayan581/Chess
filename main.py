@@ -1,0 +1,37 @@
+import pygame
+from classes import Board
+
+WIDTH, HEIGHT = 640, 640
+ROWS, COLS = 8, 8
+CELL_SIZE = WIDTH // COLS
+
+def main():
+    pygame.init()
+
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("Chess")
+    clock = pygame.time.Clock()
+
+    board = Board(CELL_SIZE)
+
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    running = False
+
+        screen.fill((255, 255, 255))
+
+        board.draw(screen)
+
+        pygame.display.flip()
+        clock.tick(60)
+
+    pygame.quit()
+
+
+if __name__ == "__main__":
+    main()
