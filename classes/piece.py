@@ -25,30 +25,50 @@ class Piece:
             self.texture, (cell_size, cell_size))
         screen.blit(scaled_texture, (x, y))
 
+    def move_to(self, x, y):
+        self.x = x
+        self.y = y
+
     def rook_moves(self, board):
         moves = []
 
         # Right
         for i in range(self.x + 1, 8):
-            if board.piece_at_cell(i, self.y):
+            piece = board.piece_at_cell(i, self.y)
+            if piece and piece.color == self.color:
                 break
+
             moves.append((i, self.y))
+            if piece and piece.color != self.color:
+                break
         # Left
         for i in range(self.x - 1, -1, -1):
-            if board.piece_at_cell(i, self.y):
+            piece = board.piece_at_cell(i, self.y)
+            if piece and piece.color == self.color:
                 break
+
             moves.append((i, self.y))
+            if piece and piece.color != self.color:
+                break
         # Up
         for i in range(self.y - 1, -1, -1):
-            if board.piece_at_cell(self.x, i):
+            piece = board.piece_at_cell(self.x, i)
+            if piece and piece.color == self.color:
                 break
+
             moves.append((self.x, i))
+            if piece and piece.color != self.color:
+                break
         # Down
         for i in range(self.y + 1, 8):
-            if board.piece_at_cell(self.x, i):
+            piece = board.piece_at_cell(self.x, i)
+            if piece and piece.color == self.color:
                 break
+
             moves.append((self.x, i))
-        
+            if piece and piece.color != self.color:
+                break
+
         return moves
 
     def get_available_moves(self, board):

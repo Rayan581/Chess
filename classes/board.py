@@ -3,7 +3,7 @@ from .piece import Piece
 
 LIGHT_SQUARE = (238, 238, 210)
 DARK_SQUARE = (118, 150, 86)
-SELECTED_COLOR = (255, 255, 102)
+SELECTED_COLOR = (255, 255, 102, 150)
 GLOWY_RED = (255, 70, 70)
 
 
@@ -26,9 +26,10 @@ class Board:
     def __init__(self, cell_size):
         self.cell_size = cell_size
         self.pieces = {}
+        self.captured_pieces = {}
         self.initialize_pieces()
         self.turn = 'white'
-        self.selected_cell = None
+        self.selected_piece = None
         self.available_moves = []
 
     def initialize_pieces(self):
@@ -48,6 +49,7 @@ class Board:
             pieces.append(Piece(current_color, 'rook', 7, y))
 
             self.pieces[current_color] = pieces
+            self.captured_pieces[current_color] = []
 
             current_color = 'black'
             y = 0
@@ -55,17 +57,18 @@ class Board:
 
         self.pieces['white'][8].y = 5
 
-    def __draw_board(self, screen):
+    def __draw_board(self, screen, alpha_surface):
         for i in range(8):
             for j in range(8):
                 cell_color = LIGHT_SQUARE if (i + j) % 2 == 0 else DARK_SQUARE
                 pygame.draw.rect(screen, cell_color, (j * self.cell_size,
                                                       i * self.cell_size, self.cell_size, self.cell_size))
 
-        if self.selected_cell:
-            x, y = self.selected_cell
-            pygame.draw.rect(screen, SELECTED_COLOR, (x * self.cell_size,
-                                                  y * self.cell_size, self.cell_size, self.cell_size))
+        if self.selected_piece:
+            x, y = self.selected_piece.x, self.selected_piece.y
+            pygame.draw.rect(alpha_surface, SELECTED_COLOR, (x * self.cell_size,
+                                                             y * self.cell_size, self.cell_size, self.cell_size))
+            screen.blit(alpha_surface, (0, 0))
 
         if self.available_moves:
             for move in self.available_moves:
@@ -79,8 +82,9 @@ class Board:
             for piece in self.pieces[color]:
                 piece.draw(screen, self.cell_size)
 
-    def draw(self, screen):
-        self.__draw_board(screen)
+    def draw(self, screen, width, height):
+        alpha_surface = pygame.Surface((width, height), pygame.SRCALPHA)
+        self.__draw_board(screen, alpha_surface)
         self.__draw_pieces(screen)
 
     def select_piece(self, mouse_x, mouse_y):
@@ -90,15 +94,29 @@ class Board:
         for piece in self.pieces[self.turn]:
             if piece.x == cell_x and piece.y == cell_y:
                 self.available_moves = piece.get_available_moves(self)
-                self.selected_cell = (cell_x, cell_y)
+                self.selected_piece = piece
                 return
 
-        self.selected_cell = None
+        self.selected_piece = None
+        self.available_moves = []
+
+    def move_piece(self, mouse_x, mouse_y):
+        cell_x = mouse_x // self.cell_size
+        cell_y = mouse_y // self.cell_size
+
+        if (cell_x, cell_y) in self.available_moves:
+            piece = self.piece_at_cell(cell_x, cell_y)
+            self.selected_piece.move_to(cell_x, cell_y)
+            if piece:
+                self.captured_pieces[self.selected_piece.color].append(piece)
+                piece.move_to(-1000, -1000)
+
+        self.selected_piece = None
         self.available_moves = []
 
     def piece_at_cell(self, x, y):
-        for color in self.pieces.keys():
-            for piece in self.pieces[color]:
+        for clr in self.pieces.keys():
+            for piece in self.pieces[clr]:
                 if piece.x == x and piece.y == y:
-                    return True
-        return False
+                    return piece
+        return None
