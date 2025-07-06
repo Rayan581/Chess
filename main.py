@@ -26,12 +26,7 @@ def main():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     mouse_x, mouse_y = pygame.mouse.get_pos()
-                    if board.selected_piece:
-                        board.move_piece(mouse_x, mouse_y)
-                    else:
-                        board.select_piece(mouse_x, mouse_y)
-
-        screen.fill((255, 255, 255))
+                    board.handle_click(mouse_x, mouse_y)
 
         board.draw(screen, WIDTH, HEIGHT)
 

@@ -28,7 +28,7 @@ class Board:
         self.pieces = {}
         self.captured_pieces = {}
         self.initialize_pieces()
-        self.turn = 'white'
+        self.current_turn = 'white'
         self.selected_piece = None
         self.available_moves = []
 
@@ -54,8 +54,6 @@ class Board:
             current_color = 'black'
             y = 0
             p_y = 1
-
-        self.pieces['white'][8].y = 5
 
     def __draw_board(self, screen, alpha_surface):
         for i in range(8):
@@ -87,34 +85,44 @@ class Board:
         self.__draw_board(screen, alpha_surface)
         self.__draw_pieces(screen)
 
-    def select_piece(self, mouse_x, mouse_y):
+    def handle_click(self, mouse_x, mouse_y):
         cell_x = mouse_x // self.cell_size
         cell_y = mouse_y // self.cell_size
 
-        for piece in self.pieces[self.turn]:
-            if piece.x == cell_x and piece.y == cell_y:
-                self.available_moves = piece.get_available_moves(self)
+        piece = self.piece_at(cell_x, cell_y)
+
+        if self.selected_piece:
+            # Check if player clicked on another piece of the same color
+            if piece and piece.color == self.current_turn:
                 self.selected_piece = piece
+                self.available_moves = piece.calculate_valid_moves(self)
                 return
+            # If clicked on a valid move square, allow move
+            elif (cell_x, cell_y) in self.available_moves:
+                self.__move_piece(cell_x, cell_y)
+                self.current_turn = 'black' if self.current_turn == 'white' else 'white'
+                return
+            else:
+                # Clicked elsewhere: unselect
+                self.selected_piece = None
+                self.available_moves = []
+        else:
+            if piece and piece.color == self.current_turn:
+                self.selected_piece = piece
+                self.available_moves = piece.calculate_valid_moves(self)
 
+    def __move_piece(self, x, y):
+        piece = self.piece_at(x, y)
+        self.selected_piece.move_to(x, y)
+        if piece:
+            self.captured_pieces[self.selected_piece.color].append(piece)
+            piece.move_to(-1000, -1000)
+
+        self.selected_piece.has_moved = True
         self.selected_piece = None
         self.available_moves = []
 
-    def move_piece(self, mouse_x, mouse_y):
-        cell_x = mouse_x // self.cell_size
-        cell_y = mouse_y // self.cell_size
-
-        if (cell_x, cell_y) in self.available_moves:
-            piece = self.piece_at_cell(cell_x, cell_y)
-            self.selected_piece.move_to(cell_x, cell_y)
-            if piece:
-                self.captured_pieces[self.selected_piece.color].append(piece)
-                piece.move_to(-1000, -1000)
-
-        self.selected_piece = None
-        self.available_moves = []
-
-    def piece_at_cell(self, x, y):
+    def piece_at(self, x, y):
         for clr in self.pieces.keys():
             for piece in self.pieces[clr]:
                 if piece.x == x and piece.y == y:
