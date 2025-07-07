@@ -27,6 +27,8 @@ class Board:
         self.cell_size = cell_size
         self.pieces = {}
         self.captured_pieces = {}
+        self.valid_moves = {}
+        self.valid_moves_dirty = True
         self.initialize_pieces()
         self.current_turn = 'white'
         self.selected_piece = None
@@ -50,6 +52,7 @@ class Board:
 
             self.pieces[current_color] = pieces
             self.captured_pieces[current_color] = []
+            self.__calculate_valid_moves()
 
             current_color = 'black'
             y = 0
@@ -95,12 +98,12 @@ class Board:
             # Check if player clicked on another piece of the same color
             if piece and piece.color == self.current_turn:
                 self.selected_piece = piece
-                self.available_moves = piece.calculate_valid_moves(self)
+                self.available_moves = piece.get_valid_moves(self)
                 return
             # If clicked on a valid move square, allow move
             elif (cell_x, cell_y) in self.available_moves:
                 self.__move_piece(cell_x, cell_y)
-                self.current_turn = 'black' if self.current_turn == 'white' else 'white'
+
                 return
             else:
                 # Clicked elsewhere: unselect
@@ -109,18 +112,42 @@ class Board:
         else:
             if piece and piece.color == self.current_turn:
                 self.selected_piece = piece
-                self.available_moves = piece.calculate_valid_moves(self)
+                self.available_moves = piece.get_valid_moves(self)
 
     def __move_piece(self, x, y):
-        piece = self.piece_at(x, y)
+        target_piece = self.piece_at(x, y)
+
+        # Save state
+        original_x, original_y = self.selected_piece.x, self.selected_piece.y
+        captured = target_piece
+
+        # Simulate move
         self.selected_piece.move_to(x, y)
-        if piece:
-            self.captured_pieces[self.selected_piece.color].append(piece)
-            piece.move_to(-1000, -1000)
+        if captured:
+            self.pieces[captured.color].remove(captured)
+
+        # Check if king is in check
+        if self.is_king_in_check(self.current_turn):
+            # Undo the move
+            self.selected_piece.move_to(original_x, original_y)
+            if captured:
+                self.pieces[captured.color].append(captured)
+            print("Invalid move: King would be in check.")
+            self.available_moves = []
+            self.selected_piece = None
+            return
+
+        # Commit move if valid
+        if captured:
+            self.captured_pieces[self.selected_piece.color].append(captured)
+            captured.move_to(-1000, -1000)
 
         self.selected_piece.has_moved = True
         self.selected_piece = None
         self.available_moves = []
+        self.valid_moves_dirty = True
+
+        self.current_turn = 'black' if self.current_turn == 'white' else 'white'
 
     def piece_at(self, x, y):
         for clr in self.pieces.keys():
@@ -128,3 +155,36 @@ class Board:
                 if piece.x == x and piece.y == y:
                     return piece
         return None
+
+    def __calculate_valid_moves(self):
+        for color in self.pieces.keys():
+            self.valid_moves[color] = []
+            for piece in self.pieces[color]:
+                self.valid_moves[color].extend(piece.get_valid_moves(self))
+
+    def get_valid_moves(self, color):
+        if self.valid_moves_dirty:
+            self.valid_moves_dirty = False
+            self.__calculate_valid_moves()
+        return self.valid_moves.get(color, [])
+
+    def get_attacked_squares(self, color):
+        attacked = set()
+        for piece in self.pieces.get(color, []):
+            attacked.update(piece.get_attacked_squares(self))
+        return attacked
+
+    def is_king_in_check(self, color):
+        enemy_color = 'black' if color == 'white' else 'white'
+        enemy_attacks = self.get_attacked_squares(enemy_color)
+
+        # Find the king
+        for piece in self.pieces[color]:
+            if piece.name == 'king':
+                king_pos = (piece.x, piece.y)
+                break
+        else:
+            # Uhh... the king is missing?! Do we call the FBI?
+            return False
+
+        return king_pos in enemy_attacks

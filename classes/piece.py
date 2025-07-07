@@ -140,10 +140,82 @@ class Piece:
                 if target_piece and target_piece.color != self.color:
                     self.valid_moves.append((target_x, target_y))
 
-    def get_available_moves(self):
-        return self.valid_moves
+    def __king_moves(self, board):
+        self.valid_moves = []
 
-    def calculate_valid_moves(self, board):
+        for dx in range(-1, 2):
+            for dy in range(-1, 2):
+                if dx == 0 and dy == 0:
+                    continue
+
+                target_x = self.x + dx
+                target_y = self.y + dy
+
+                if 0 <= target_x < 8 and 0 <= target_y < 8:
+                    target_piece = board.piece_at(target_x, target_y)
+                    if target_piece is None or target_piece.color != self.color:
+                        self.valid_moves.append((target_x, target_y))
+
+        # Get moves of other player and remove the dangerous cells
+        other_color = 'black' if self.color == 'white' else 'white'
+        attacked_squares = board.get_attacked_squares(other_color)
+        self.valid_moves = [
+            move for move in self.valid_moves if move not in attacked_squares]
+
+    def get_attacked_squares(self, board):
+        attacked = []
+
+        if self.name == 'pawn':
+            direction = 1 if self.color == 'black' else -1
+            for dx in [-1, 1]:
+                target_x = self.x + dx
+                target_y = self.y + direction
+                if 0 <= target_x < 8 and 0 <= target_y < 8:
+                    attacked.append((target_x, target_y))
+
+        elif self.name == 'knight':
+            directions = [(2, -1), (2, 1), (-2, -1), (-2, 1),
+                          (-1, -2), (1, -2), (-1, 2), (1, 2)]
+            for dx, dy in directions:
+                x, y = self.x + dx, self.y + dy
+                if 0 <= x < 8 and 0 <= y < 8:
+                    attacked.append((x, y))
+
+        elif self.name == 'bishop':
+            attacked += self.__raycast_attacks(board,
+                                               [(1, -1), (-1, -1), (1, 1), (-1, 1)])
+
+        elif self.name == 'rook':
+            attacked += self.__raycast_attacks(board,
+                                               [(1, 0), (-1, 0), (0, 1), (0, -1)])
+
+        elif self.name == 'queen':
+            attacked += self.__raycast_attacks(board, [(1, 0), (-1, 0), (0, 1), (0, -1),
+                                                       (1, -1), (-1, -1), (1, 1), (-1, 1)])
+
+        elif self.name == 'king':
+            for dx in range(-1, 2):
+                for dy in range(-1, 2):
+                    if dx != 0 or dy != 0:
+                        x, y = self.x + dx, self.y + dy
+                        if 0 <= x < 8 and 0 <= y < 8:
+                            attacked.append((x, y))
+
+        return attacked
+
+    def __raycast_attacks(self, board, directions):
+        attacked = []
+        for dx, dy in directions:
+            x, y = self.x + dx, self.y + dy
+            while 0 <= x < 8 and 0 <= y < 8:
+                attacked.append((x, y))
+                if board.piece_at(x, y):  # stop at first piece hit
+                    break
+                x += dx
+                y += dy
+        return attacked
+
+    def get_valid_moves(self, board):
         if self.name == 'rook':
             self.__rook_moves(board)
         elif self.name == 'bishop':
@@ -155,6 +227,6 @@ class Piece:
         elif self.name == 'pawn':
             self.__pawn_moves(board)
         elif self.name == 'king':
-            pass
+            self.__king_moves(board)
 
         return self.valid_moves
