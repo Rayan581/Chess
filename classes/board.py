@@ -28,6 +28,7 @@ class Board:
         self.pieces = {}
         self.captured_pieces = {}
         self.valid_moves = {}
+        self.board_flipped = False
         self.valid_moves_dirty = True
         self.initialize_pieces()
         self.current_turn = 'white'
@@ -62,11 +63,15 @@ class Board:
         for i in range(8):
             for j in range(8):
                 cell_color = LIGHT_SQUARE if (i + j) % 2 == 0 else DARK_SQUARE
+                if self.board_flipped:
+                    i, j = 7 - i, 7 - j
                 pygame.draw.rect(screen, cell_color, (j * self.cell_size,
                                                       i * self.cell_size, self.cell_size, self.cell_size))
 
         if self.selected_piece:
             x, y = self.selected_piece.x, self.selected_piece.y
+            if self.board_flipped:
+                x, y = 7 - x, 7 - y
             pygame.draw.rect(alpha_surface, SELECTED_COLOR, (x * self.cell_size,
                                                              y * self.cell_size, self.cell_size, self.cell_size))
             screen.blit(alpha_surface, (0, 0))
@@ -74,6 +79,8 @@ class Board:
         if self.available_moves:
             for move in self.available_moves:
                 x, y = move
+                if self.board_flipped:
+                    x, y = 7 - x, 7 - y
                 cell_color = LIGHT_SQUARE if (x + y) % 2 == 0 else DARK_SQUARE
                 draw_glow_square(screen, x * self.cell_size, y * self.cell_size,
                                  self.cell_size, cell_color, GLOWY_RED, 5)
@@ -81,7 +88,7 @@ class Board:
     def __draw_pieces(self, screen):
         for color in self.pieces.keys():
             for piece in self.pieces[color]:
-                piece.draw(screen, self.cell_size)
+                piece.draw(screen, self.cell_size, self.board_flipped)
 
     def draw(self, screen, width, height):
         alpha_surface = pygame.Surface((width, height), pygame.SRCALPHA)
@@ -91,6 +98,10 @@ class Board:
     def handle_click(self, mouse_x, mouse_y):
         cell_x = mouse_x // self.cell_size
         cell_y = mouse_y // self.cell_size
+
+        if self.board_flipped:
+            cell_x = 7 - cell_x
+            cell_y = 7 - cell_y
 
         piece = self.piece_at(cell_x, cell_y)
 
@@ -146,6 +157,7 @@ class Board:
         self.selected_piece = None
         self.available_moves = []
         self.valid_moves_dirty = True
+        self.board_flipped = not self.board_flipped
 
         self.current_turn = 'black' if self.current_turn == 'white' else 'white'
 

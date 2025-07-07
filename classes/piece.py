@@ -19,9 +19,13 @@ class Piece:
             BASE_DIR, "pieces", self.color, f"{piece_name}.png")
         return pygame.image.load(texture_path).convert_alpha()
 
-    def draw(self, screen, cell_size):
+    def draw(self, screen, cell_size, board_flipped=False):
         x = self.x * cell_size
         y = self.y * cell_size
+        # If the board is flipped, adjust the coordinates
+        if board_flipped:
+            x = (7 - self.x) * cell_size
+            y = (7 - self.y) * cell_size
 
         scaled_texture = pygame.transform.scale(
             self.texture, (cell_size, cell_size))
