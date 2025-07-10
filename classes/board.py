@@ -128,37 +128,24 @@ class Board:
     def __move_piece(self, x, y):
         target_piece = self.piece_at(x, y)
 
-        # Save state
-        original_x, original_y = self.selected_piece.x, self.selected_piece.y
-        captured = target_piece
+        # Capture logic
+        if target_piece:
+            self.pieces[target_piece.color].remove(target_piece)
+            self.captured_pieces[self.selected_piece.color].append(
+                target_piece)
+            target_piece.move_to(-1000, -1000)  # Exile the poor thing
 
-        # Simulate move
+        # Move piece
         self.selected_piece.move_to(x, y)
-        if captured:
-            self.pieces[captured.color].remove(captured)
-
-        # Check if king is in check
-        if self.is_king_in_check(self.current_turn):
-            # Undo the move
-            self.selected_piece.move_to(original_x, original_y)
-            if captured:
-                self.pieces[captured.color].append(captured)
-            print("Invalid move: King would be in check.")
-            self.available_moves = []
-            self.selected_piece = None
-            return
-
-        # Commit move if valid
-        if captured:
-            self.captured_pieces[self.selected_piece.color].append(captured)
-            captured.move_to(-1000, -1000)
-
         self.selected_piece.has_moved = True
+
+        # Reset selections
         self.selected_piece = None
         self.available_moves = []
+
+        # Update board state
         self.valid_moves_dirty = True
         self.board_flipped = not self.board_flipped
-
         self.current_turn = 'black' if self.current_turn == 'white' else 'white'
 
     def piece_at(self, x, y):
@@ -200,3 +187,34 @@ class Board:
             return False
 
         return king_pos in enemy_attacks
+    
+    def is_checkmate(self):
+        color = self.current_turn
+        if not self.is_king_in_check(color):
+            return False
+
+        for piece in self.pieces[color]:
+            for move in piece.get_valid_moves(self):
+                # Temporarily move the piece
+                original_pos = (piece.x, piece.y)
+                piece.move_to(*move)
+
+                # Check if the king is still in check
+                if not self.is_king_in_check(color):
+                    # Undo the move
+                    piece.move_to(*original_pos)
+                    return False
+
+                # Undo the move
+                piece.move_to(*original_pos)
+
+        return True
+
+    def reset(self):
+        self.initialize_pieces()
+        self.current_turn = 'white'
+        self.selected_piece = None
+        self.available_moves = []
+        self.board_flipped = False
+        self.valid_moves_dirty = True
+        self.captured_pieces = {color: [] for color in self.pieces.keys()}

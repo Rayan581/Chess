@@ -28,6 +28,9 @@ def main():
                     mouse_x, mouse_y = pygame.mouse.get_pos()
                     board.handle_click(mouse_x, mouse_y)
 
+        if board.is_checkmate():
+            print(f"{board.current_turn} is in checkmate!")
+
         board.draw(screen, WIDTH, HEIGHT)
 
         pygame.display.flip()
