@@ -167,7 +167,7 @@ class Piece:
             move for move in self.valid_moves if move not in attacked_squares]
         
         # Add castling moves if applicable
-        self.castle(board)
+        self.castle_moves(board)
 
     def get_attacked_squares(self, board):
         attacked = []
@@ -247,7 +247,7 @@ class Piece:
             if in_check:
                 self.valid_moves.remove((x, y))
 
-    def castle(self, board):
+    def castle_moves(self, board):
         if self.has_moved:
             return
 
@@ -261,7 +261,7 @@ class Piece:
                     self.move_to(self.x + x, self.y)
                     if board.is_king_in_check(self.color):
                         self.move_to(original_x, original_y)
-                        return
+                        break
                     self.move_to(original_x, original_y)
                 
                 # If we reach here, castling is possible
@@ -278,7 +278,7 @@ class Piece:
                     self.move_to(self.x + x, self.y)
                     if board.is_king_in_check(self.color):
                         self.move_to(original_x, original_y)
-                        return
+                        break
                     self.move_to(original_x, original_y)
 
                 # If we reach here, castling is possible

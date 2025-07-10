@@ -126,14 +126,25 @@ class Board:
                 self.available_moves = piece.get_valid_moves(self)
 
     def __move_piece(self, x, y):
-        target_piece = self.piece_at(x, y)
+        # Move the king to castle
+        if self.selected_piece.name == 'king' and abs(self.selected_piece.x - x) > 1:
+            rook_x = 0 if x < self.selected_piece.x else 7
+            rook_y = y
+            rook = self.piece_at(rook_x, rook_y)
+            if rook and rook.name == 'rook' and not rook.has_moved:
+                # Move the rook to the correct position
+                new_rook_x = x - 1 if x > self.selected_piece.x else x + 1
+                rook.move_to(new_rook_x, y)
+                rook.has_moved = True
+        else:
+            target_piece = self.piece_at(x, y)
 
-        # Capture logic
-        if target_piece:
-            self.pieces[target_piece.color].remove(target_piece)
-            self.captured_pieces[self.selected_piece.color].append(
-                target_piece)
-            target_piece.move_to(-1000, -1000)  # Exile the poor thing
+            # Capture logic
+            if target_piece:
+                self.pieces[target_piece.color].remove(target_piece)
+                self.captured_pieces[self.selected_piece.color].append(
+                    target_piece)
+                target_piece.move_to(-1000, -1000)  # Exile the poor thing
 
         # Move piece
         self.selected_piece.move_to(x, y)
