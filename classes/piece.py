@@ -16,7 +16,7 @@ class Piece:
         BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         piece_name = self.color + '-' + self.name
         texture_path = os.path.join(
-            BASE_DIR, "pieces", self.color, f"{piece_name}.png")
+            BASE_DIR, "assets", "pieces", self.color, f"{piece_name}.png")
         return pygame.image.load(texture_path).convert_alpha()
 
     def draw(self, screen, cell_size, board_flipped=False):
