@@ -20,6 +20,9 @@ class Piece:
         return pygame.image.load(texture_path).convert_alpha()
 
     def draw(self, screen, cell_size, board_flipped=False):
+        if self.x < 0 or self.x >= 8 or self.y < 0 or self.y >= 8:
+            return
+
         x = self.x * cell_size
         y = self.y * cell_size
         # If the board is flipped, adjust the coordinates
@@ -32,8 +35,9 @@ class Piece:
         screen.blit(scaled_texture, (x, y))
 
     def move_to(self, x, y):
-        self.x = x
-        self.y = y
+        if 0 <= x < 8 and 0 <= y < 8:
+            self.x = x
+            self.y = y
 
     def __rook_moves(self, board):
         self.valid_moves = []
@@ -165,7 +169,7 @@ class Piece:
         attacked_squares = board.get_attacked_squares(other_color)
         self.valid_moves = [
             move for move in self.valid_moves if move not in attacked_squares]
-        
+
         # Add castling moves if applicable
         self.castle_moves(board)
 
@@ -256,34 +260,40 @@ class Piece:
         if left_rook and left_rook.name == 'rook' and not left_rook.has_moved:
             if all(board.piece_at(x, self.y) is None for x in range(1, 4)) and \
                not board.is_king_in_check(self.color):
+                possible = True
                 original_x, original_y = self.x, self.y
-                for x in [self.x - 1, self.x - 2]:
-                    self.move_to(self.x + x, self.y)
+                for x in range(1, 3):
+                    self.move_to(self.x - x, self.y)
                     if board.is_king_in_check(self.color):
                         self.move_to(original_x, original_y)
+                        possible = False
                         break
                     self.move_to(original_x, original_y)
-                
+
                 # If we reach here, castling is possible
                 # Append the castling move
-                self.valid_moves.append((self.x - 2, self.y))
+                if possible:
+                    self.valid_moves.append((self.x - 2, self.y))
 
         # Check for right rook
         right_rook = board.piece_at(7, self.y)
         if right_rook and right_rook.name == 'rook' and not right_rook.has_moved:
             if all(board.piece_at(x, self.y) is None for x in range(5, 7)) and \
                not board.is_king_in_check(self.color):
+                possible = True
                 original_x, original_y = self.x, self.y
-                for x in [self.x + 1, self.x + 2]:
+                for x in range(1, 3):
                     self.move_to(self.x + x, self.y)
                     if board.is_king_in_check(self.color):
                         self.move_to(original_x, original_y)
+                        possible = False
                         break
                     self.move_to(original_x, original_y)
 
                 # If we reach here, castling is possible
                 # Append the castling move
-                self.valid_moves.append((self.x + 2, self.y))
+                if possible:
+                    self.valid_moves.append((self.x + 2, self.y))
 
         return
 

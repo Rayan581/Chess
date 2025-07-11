@@ -34,6 +34,19 @@ class Board:
         self.current_turn = 'white'
         self.selected_piece = None
         self.available_moves = []
+        self.pawn_promotion = False
+
+        self.promotion_menu_buttons = {
+            'queen': pygame.Rect(0, 0, cell_size, cell_size),
+            'rook': pygame.Rect(0, 0, cell_size, cell_size),
+            'bishop': pygame.Rect(0, 0, cell_size, cell_size),
+            'knight': pygame.Rect(0, 0, cell_size, cell_size)
+        }
+
+        self.promotion_menu_buttons['queen'].topleft = (cell_size * 2, cell_size * 2)
+        self.promotion_menu_buttons['rook'].topleft = (cell_size * 3, cell_size * 2)
+        self.promotion_menu_buttons['bishop'].topleft = (cell_size * 4, cell_size * 2)
+        self.promotion_menu_buttons['knight'].topleft = (cell_size * 5, cell_size * 2)
 
     def initialize_pieces(self):
         self.pieces = {}
@@ -59,7 +72,39 @@ class Board:
             y = 0
             p_y = 1
 
-    def __draw_board(self, screen, alpha_surface):
+    def __draw_font(self, screen, text, x, y, size, font, color):
+        font = pygame.font.Font(font, size)
+        text_surface = font.render(text, True, color)
+        text_rect = text_surface.get_rect(center=(x, y))
+        screen.blit(text_surface, text_rect)
+
+    def __draw_promotion_menu(self, screen, width, height):
+        queen_texture = pygame.image.load(
+            f'assets/pieces/{self.current_turn}/{self.current_turn}-queen.png')
+        rook_texture = pygame.image.load(
+            f'assets/pieces/{self.current_turn}/{self.current_turn}-rook.png')
+        bishop_texture = pygame.image.load(
+            f'assets/pieces/{self.current_turn}/{self.current_turn}-bishop.png')
+        knight_texture = pygame.image.load(
+            f'assets/pieces/{self.current_turn}/{self.current_turn}-knight.png')
+
+        queen_texture = pygame.transform.scale(
+            queen_texture, (self.cell_size, self.cell_size))
+        rook_texture = pygame.transform.scale(
+            rook_texture, (self.cell_size, self.cell_size))
+        bishop_texture = pygame.transform.scale(
+            bishop_texture, (self.cell_size, self.cell_size))
+        knight_texture = pygame.transform.scale(
+            knight_texture, (self.cell_size, self.cell_size))
+        
+        screen.blit(queen_texture, self.promotion_menu_buttons['queen'].topleft)
+        screen.blit(rook_texture, self.promotion_menu_buttons['rook'].topleft)
+        screen.blit(bishop_texture, self.promotion_menu_buttons['bishop'].topleft)
+        screen.blit(knight_texture, self.promotion_menu_buttons['knight'].topleft)
+        for button in self.promotion_menu_buttons.values():
+            pygame.draw.rect(screen, (0, 0, 0), button, 2)
+
+    def __draw_board(self, screen, alpha_surface, width, height):
         for i in range(8):
             for j in range(8):
                 cell_color = LIGHT_SQUARE if (i + j) % 2 == 0 else DARK_SQUARE
@@ -85,6 +130,19 @@ class Board:
                 draw_glow_square(screen, x * self.cell_size, y * self.cell_size,
                                  self.cell_size, cell_color, GLOWY_RED, 5)
 
+        # Draw the a, b, c or 1, 2, 3 labels
+        for i in range(8):
+            label = chr(97 + i) if not self.board_flipped else chr(104 - i)
+            self.__draw_font(screen, label, self.cell_size * (i + 1) - 10, height - 10,
+                             15, 'freesansbold.ttf', (0, 0, 0))
+
+            label = str(i + 1) if not self.board_flipped else str(8 - i)
+            self.__draw_font(screen, label, 10, self.cell_size * i + 10,
+                             15, 'freesansbold.ttf', (0, 0, 0))
+
+        if self.pawn_promotion:
+            self.__draw_promotion_menu(screen, width, height)
+
     def __draw_pieces(self, screen):
         for color in self.pieces.keys():
             for piece in self.pieces[color]:
@@ -92,10 +150,25 @@ class Board:
 
     def draw(self, screen, width, height):
         alpha_surface = pygame.Surface((width, height), pygame.SRCALPHA)
-        self.__draw_board(screen, alpha_surface)
+        self.__draw_board(screen, alpha_surface, width, height)
         self.__draw_pieces(screen)
 
     def handle_click(self, mouse_x, mouse_y):
+        if self.pawn_promotion:
+            for piece_name, button in self.promotion_menu_buttons.items():
+                if button.collidepoint(mouse_x, mouse_y):
+                    # Replace the pawn with the selected piece
+                    new_piece = Piece(self.current_turn, piece_name,
+                                      self.selected_piece.x, self.selected_piece.y)
+                    self.pieces[self.current_turn].remove(self.selected_piece)
+                    self.pieces[self.current_turn].append(new_piece)
+                    self.selected_piece = None
+                    self.current_turn = 'black' if self.current_turn == 'white' else 'white'
+                    self.pawn_promotion = False
+                    self.valid_moves_dirty = True
+                    self.board_flipped = not self.board_flipped
+            return
+
         cell_x = mouse_x // self.cell_size
         cell_y = mouse_y // self.cell_size
 
@@ -150,6 +223,14 @@ class Board:
         self.selected_piece.move_to(x, y)
         self.selected_piece.has_moved = True
 
+        # If the piece is a pawn and reaches the opposite end, promote it
+        if self.selected_piece.name == 'pawn':
+            if (self.selected_piece.color == 'white' and y == 0) or \
+               (self.selected_piece.color == 'black' and y == 7):
+                self.pawn_promotion = True
+                self.available_moves = []
+                return
+
         # Reset selections
         self.selected_piece = None
         self.available_moves = []
@@ -198,7 +279,7 @@ class Board:
             return False
 
         return king_pos in enemy_attacks
-    
+
     def is_checkmate(self):
         color = self.current_turn
         if not self.is_king_in_check(color):
