@@ -43,10 +43,14 @@ class Board:
             'knight': pygame.Rect(0, 0, cell_size, cell_size)
         }
 
-        self.promotion_menu_buttons['queen'].topleft = (cell_size * 2, cell_size * 2)
-        self.promotion_menu_buttons['rook'].topleft = (cell_size * 3, cell_size * 2)
-        self.promotion_menu_buttons['bishop'].topleft = (cell_size * 4, cell_size * 2)
-        self.promotion_menu_buttons['knight'].topleft = (cell_size * 5, cell_size * 2)
+        self.promotion_menu_buttons['queen'].topleft = (
+            cell_size * 2, cell_size * 2)
+        self.promotion_menu_buttons['rook'].topleft = (
+            cell_size * 3, cell_size * 2)
+        self.promotion_menu_buttons['bishop'].topleft = (
+            cell_size * 4, cell_size * 2)
+        self.promotion_menu_buttons['knight'].topleft = (
+            cell_size * 5, cell_size * 2)
 
     def initialize_pieces(self):
         self.pieces = {}
@@ -78,7 +82,7 @@ class Board:
         text_rect = text_surface.get_rect(center=(x, y))
         screen.blit(text_surface, text_rect)
 
-    def __draw_promotion_menu(self, screen, width, height):
+    def __draw_promotion_menu(self, screen):
         queen_texture = pygame.image.load(
             f'assets/pieces/{self.current_turn}/{self.current_turn}-queen.png')
         rook_texture = pygame.image.load(
@@ -96,11 +100,14 @@ class Board:
             bishop_texture, (self.cell_size, self.cell_size))
         knight_texture = pygame.transform.scale(
             knight_texture, (self.cell_size, self.cell_size))
-        
-        screen.blit(queen_texture, self.promotion_menu_buttons['queen'].topleft)
+
+        screen.blit(queen_texture,
+                    self.promotion_menu_buttons['queen'].topleft)
         screen.blit(rook_texture, self.promotion_menu_buttons['rook'].topleft)
-        screen.blit(bishop_texture, self.promotion_menu_buttons['bishop'].topleft)
-        screen.blit(knight_texture, self.promotion_menu_buttons['knight'].topleft)
+        screen.blit(bishop_texture,
+                    self.promotion_menu_buttons['bishop'].topleft)
+        screen.blit(knight_texture,
+                    self.promotion_menu_buttons['knight'].topleft)
         for button in self.promotion_menu_buttons.values():
             pygame.draw.rect(screen, (0, 0, 0), button, 2)
 
@@ -141,7 +148,7 @@ class Board:
                              15, 'freesansbold.ttf', (0, 0, 0))
 
         if self.pawn_promotion:
-            self.__draw_promotion_menu(screen, width, height)
+            self.__draw_promotion_menu(screen)
 
     def __draw_pieces(self, screen):
         for color in self.pieces.keys():
@@ -153,20 +160,24 @@ class Board:
         self.__draw_board(screen, alpha_surface, width, height)
         self.__draw_pieces(screen)
 
+    def __promote(self, mouse_x, mouse_y):
+        for piece_name, button in self.promotion_menu_buttons.items():
+            if button.collidepoint(mouse_x, mouse_y):
+                # Replace the pawn with the selected piece
+                new_piece = Piece(self.current_turn, piece_name,
+                                  self.selected_piece.x, self.selected_piece.y)
+                self.pieces[self.current_turn].remove(self.selected_piece)
+                self.pieces[self.current_turn].append(new_piece)
+
+                self.selected_piece = None
+                self.current_turn = 'black' if self.current_turn == 'white' else 'white'
+                self.pawn_promotion = False
+                self.valid_moves_dirty = True
+                self.board_flipped = not self.board_flipped
+
     def handle_click(self, mouse_x, mouse_y):
         if self.pawn_promotion:
-            for piece_name, button in self.promotion_menu_buttons.items():
-                if button.collidepoint(mouse_x, mouse_y):
-                    # Replace the pawn with the selected piece
-                    new_piece = Piece(self.current_turn, piece_name,
-                                      self.selected_piece.x, self.selected_piece.y)
-                    self.pieces[self.current_turn].remove(self.selected_piece)
-                    self.pieces[self.current_turn].append(new_piece)
-                    self.selected_piece = None
-                    self.current_turn = 'black' if self.current_turn == 'white' else 'white'
-                    self.pawn_promotion = False
-                    self.valid_moves_dirty = True
-                    self.board_flipped = not self.board_flipped
+            self.__promote(mouse_x, mouse_y)
             return
 
         cell_x = mouse_x // self.cell_size
@@ -217,7 +228,6 @@ class Board:
                 self.pieces[target_piece.color].remove(target_piece)
                 self.captured_pieces[self.selected_piece.color].append(
                     target_piece)
-                target_piece.move_to(-1000, -1000)  # Exile the poor thing
 
         # Move piece
         self.selected_piece.move_to(x, y)
