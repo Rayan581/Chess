@@ -16,6 +16,7 @@ def main():
     board = Board(CELL_SIZE)
 
     running = True
+    game_over = False
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -30,6 +31,10 @@ def main():
 
         if board.is_checkmate():
             print(f"{board.current_turn} is in checkmate!")
+            game_over = True
+        elif board.is_stalemate():
+            print(f"{board.current_turn} is in stalemate!")
+            game_over = True
 
         board.draw(screen, WIDTH, HEIGHT)
 
