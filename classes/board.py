@@ -1,10 +1,14 @@
 import pygame
 from .piece import Piece
+from .sound_manager import SoundManager
 
 LIGHT_SQUARE = (238, 238, 210)
 DARK_SQUARE = (118, 150, 86)
 SELECTED_COLOR = (255, 255, 102, 150)
 GLOWY_RED = (255, 70, 70)
+
+sounds = SoundManager()
+sound_to_play = ''
 
 
 def draw_glow_square(screen, x, y, size, fill_color, glow_color, glow_thickness):
@@ -51,6 +55,8 @@ class Board:
             cell_size * 4, cell_size * 2)
         self.promotion_menu_buttons['knight'].topleft = (
             cell_size * 5, cell_size * 2)
+
+        sounds.play_sound('opening')
 
     def initialize_pieces(self):
         self.pieces = {}
@@ -176,6 +182,9 @@ class Board:
                 self.board_flipped = not self.board_flipped
 
     def handle_click(self, mouse_x, mouse_y):
+        global sound_to_play
+        sound_to_play = ''
+
         if self.pawn_promotion:
             self.__promote(mouse_x, mouse_y)
             return
@@ -194,12 +203,10 @@ class Board:
             if piece and piece.color == self.current_turn:
                 self.selected_piece = piece
                 self.available_moves = piece.get_valid_moves(self)
-                return
+
             # If clicked on a valid move square, allow move
             elif (cell_x, cell_y) in self.available_moves:
                 self.__move_piece(cell_x, cell_y)
-
-                return
             else:
                 # Clicked elsewhere: unselect
                 self.selected_piece = None
@@ -209,7 +216,11 @@ class Board:
                 self.selected_piece = piece
                 self.available_moves = piece.get_valid_moves(self)
 
+        sounds.play_sound(sound_to_play)
+
     def __move_piece(self, x, y):
+        global sound_to_play
+
         # Move the king to castle
         if self.selected_piece.name == 'king' and abs(self.selected_piece.x - x) > 1:
             rook_x = 0 if x < self.selected_piece.x else 7
@@ -220,6 +231,8 @@ class Board:
                 new_rook_x = x - 1 if x > self.selected_piece.x else x + 1
                 rook.move_to(new_rook_x, y)
                 rook.has_moved = True
+
+                sound_to_play = 'castle'
         else:
             target_piece = self.piece_at(x, y)
 
@@ -228,6 +241,9 @@ class Board:
                 self.pieces[target_piece.color].remove(target_piece)
                 self.captured_pieces[self.selected_piece.color].append(
                     target_piece)
+                sound_to_play = 'capture'
+            else:
+                sound_to_play = 'move'
 
         # Move piece
         self.selected_piece.move_to(x, y)
@@ -249,6 +265,13 @@ class Board:
         self.valid_moves_dirty = True
         self.board_flipped = not self.board_flipped
         self.current_turn = 'black' if self.current_turn == 'white' else 'white'
+
+        if self.is_king_in_check(self.current_turn):
+            sound_to_play = 'check'
+        if self.is_checkmate():
+            sound_to_play = 'checkmate'
+        elif self.is_stalemate():
+            sound_to_play = 'stalemate'
 
     def piece_at(self, x, y):
         for clr in self.pieces.keys():
@@ -291,25 +314,70 @@ class Board:
         return king_pos in enemy_attacks
 
     def is_checkmate(self):
+        import copy
+
         color = self.current_turn
         if not self.is_king_in_check(color):
             return False
 
         for piece in self.pieces[color]:
-            for move in piece.get_valid_moves(self):
-                # Temporarily move the piece
+            valid_moves = piece.get_valid_moves(self)
+            for move in valid_moves:
                 original_pos = (piece.x, piece.y)
-                piece.move_to(*move)
+                captured = self.piece_at(*move)
 
-                # Check if the king is still in check
+                # Move piece
+                piece.move_to(*move)
+                if captured:
+                    self.pieces[captured.color].remove(captured)
+
+                # Check for check
                 if not self.is_king_in_check(color):
                     # Undo the move
                     piece.move_to(*original_pos)
+                    if captured:
+                        self.pieces[captured.color].append(captured)
                     return False
 
                 # Undo the move
                 piece.move_to(*original_pos)
+                if captured:
+                    self.pieces[captured.color].append(captured)
 
+        return True
+
+    def is_stalemate(self):
+        color = self.current_turn
+
+        # If the king is in check, it's not a stalemate.
+        if self.is_king_in_check(color):
+            return False
+
+        # Check if any piece of the current color has valid legal moves
+        for piece in self.pieces[color]:
+            for move in piece.get_valid_moves(self):
+                # Temporarily make the move
+                original_pos = (piece.x, piece.y)
+                captured = self.piece_at(*move)
+
+                piece.move_to(*move)
+                if captured:
+                    self.pieces[captured.color].remove(captured)
+
+                # If the king is not in check after the move
+                if not self.is_king_in_check(color):
+                    # Undo the move and return False (not stalemate)
+                    piece.move_to(*original_pos)
+                    if captured:
+                        self.pieces[captured.color].append(captured)
+                    return False
+
+                # Undo the move
+                piece.move_to(*original_pos)
+                if captured:
+                    self.pieces[captured.color].append(captured)
+
+        # No legal moves found and not in check → stalemate
         return True
 
     def reset(self):
