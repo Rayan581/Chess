@@ -18,5 +18,3 @@ class SoundManager:
     def play_sound(self, sound_name):
         if sound_name in self.sounds:
             self.sounds[sound_name].play()
-        else:
-            print(f"Sound '{sound_name}' not found.")

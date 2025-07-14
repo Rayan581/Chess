@@ -40,6 +40,14 @@ class Board:
         self.available_moves = []
         self.pawn_promotion = False
 
+        self.piece_points = {
+            'pawn': 1,
+            'knight': 3,
+            'bishop': 3,
+            'rook': 5,
+            'queen': 9
+        }
+
         self.promotion_menu_buttons = {
             'queen': pygame.Rect(0, 0, cell_size, cell_size),
             'rook': pygame.Rect(0, 0, cell_size, cell_size),
@@ -47,14 +55,15 @@ class Board:
             'knight': pygame.Rect(0, 0, cell_size, cell_size)
         }
 
+        menu_left_offset = (offset - (cell_size * 4)) // 2
         self.promotion_menu_buttons['queen'].topleft = (
-            15, cell_size * 3 + cell_size // 2)
+            menu_left_offset, cell_size * 3 + cell_size // 2)
         self.promotion_menu_buttons['rook'].topleft = (
-            15 + cell_size, cell_size * 3 + cell_size // 2)
+            menu_left_offset + cell_size, cell_size * 3 + cell_size // 2)
         self.promotion_menu_buttons['bishop'].topleft = (
-            15 + cell_size * 2, cell_size * 3 + cell_size // 2)
+            menu_left_offset + cell_size * 2, cell_size * 3 + cell_size // 2)
         self.promotion_menu_buttons['knight'].topleft = (
-            15 + cell_size * 3, cell_size * 3 + cell_size // 2)
+            menu_left_offset + cell_size * 3, cell_size * 3 + cell_size // 2)
 
         sounds.play_sound('opening')
 
@@ -161,10 +170,50 @@ class Board:
             for piece in self.pieces[color]:
                 piece.draw(screen, self.cell_size, offset, self.board_flipped)
 
+    def __get_sorted_captured_pieces(self, color):
+        return sorted(
+            self.captured_pieces[color],
+            key=lambda p: self.piece_points.get(p.name, 0),
+            reverse=False
+        )
+
+    def __draw_captured_pieces(self, screen):
+        from collections import defaultdict
+        
+        cell = self.cell_size
+        piece_size = int(cell * 0.4)
+        group_margin_x = piece_size + 15
+        horizontal_stack_offset = 8  # How much each stacked piece is offset down
+
+        def draw_stacked_groups(pieces, x_start, y_start):
+            grouped = defaultdict(list)
+            for piece in pieces:
+                grouped[piece.name].append(piece)
+
+            for group_index, (name, group) in enumerate(
+                sorted(grouped.items(), key=lambda item: self.piece_points.get(
+                    item[0], 0), reverse=False)
+            ):
+                base_x = x_start + group_index * group_margin_x
+                for i, piece in enumerate(group):
+                    icon = pygame.transform.scale(
+                        piece.texture, (piece_size, piece_size))
+                    screen.blit(icon, (base_x + i * horizontal_stack_offset, y_start))
+
+        # Top row: black pieces captured by white
+        captured_black = self.captured_pieces['white']
+        draw_stacked_groups(captured_black, x_start=10, y_start=5)
+
+        # Bottom row: white pieces captured by black
+        captured_white = self.captured_pieces['black']
+        y_start_bottom = 8 * cell - piece_size - 5
+        draw_stacked_groups(captured_white, x_start=10, y_start=y_start_bottom)
+
     def draw(self, screen, width, height, offset):
         alpha_surface = pygame.Surface((width, height), pygame.SRCALPHA)
         self.__draw_board(screen, alpha_surface, width, height, offset)
         self.__draw_pieces(screen, offset)
+        self.__draw_captured_pieces(screen)
 
     def __promote(self, mouse_x, mouse_y):
         for piece_name, button in self.promotion_menu_buttons.items():
