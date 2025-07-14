@@ -179,11 +179,11 @@ class Board:
 
     def __draw_captured_pieces(self, screen):
         from collections import defaultdict
-        
+
         cell = self.cell_size
         piece_size = int(cell * 0.4)
         group_margin_x = piece_size + 15
-        horizontal_stack_offset = 8  # How much each stacked piece is offset down
+        horizontal_stack_offset = 8  # How much each stacked piece is offset right
 
         def draw_stacked_groups(pieces, x_start, y_start):
             grouped = defaultdict(list)
@@ -198,7 +198,8 @@ class Board:
                 for i, piece in enumerate(group):
                     icon = pygame.transform.scale(
                         piece.texture, (piece_size, piece_size))
-                    screen.blit(icon, (base_x + i * horizontal_stack_offset, y_start))
+                    screen.blit(
+                        icon, (base_x + i * horizontal_stack_offset, y_start))
 
         # Top row: black pieces captured by white
         captured_black = self.captured_pieces['white']
