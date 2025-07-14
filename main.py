@@ -2,18 +2,21 @@ import pygame
 from classes import Board
 
 WIDTH, HEIGHT = 640, 640
+OFFSET = 350
 ROWS, COLS = 8, 8
 CELL_SIZE = WIDTH // COLS
+
+GRAY = (128, 128, 128)
 
 
 def main():
     pygame.init()
 
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    screen = pygame.display.set_mode((WIDTH + (OFFSET * 2), HEIGHT))
     pygame.display.set_caption("Chess")
     clock = pygame.time.Clock()
 
-    board = Board(CELL_SIZE)
+    board = Board(CELL_SIZE, OFFSET)
 
     running = True
     game_over = False
@@ -27,7 +30,7 @@ def main():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     mouse_x, mouse_y = pygame.mouse.get_pos()
-                    board.handle_click(mouse_x, mouse_y)
+                    board.handle_click(mouse_x, mouse_y, OFFSET)
 
         if board.is_checkmate():
             print(f"{board.current_turn} is in checkmate!")
@@ -36,7 +39,9 @@ def main():
             print(f"{board.current_turn} is in stalemate!")
             game_over = True
 
-        board.draw(screen, WIDTH, HEIGHT)
+        screen.fill(GRAY)
+
+        board.draw(screen, WIDTH, HEIGHT, OFFSET)
 
         pygame.display.flip()
         clock.tick(60)
