@@ -5,25 +5,10 @@ from .sound_manager import SoundManager
 LIGHT_SQUARE = (238, 238, 210)
 DARK_SQUARE = (118, 150, 86)
 SELECTED_COLOR = (255, 255, 102, 150)
-GLOWY_RED = (255, 70, 70)
+TRANSPARENT_BLACK = (0, 0, 0, 70)
 
 sounds = SoundManager()
 sound_to_play = ''
-
-
-def draw_glow_square(screen, x, y, size, fill_color, glow_color, glow_thickness):
-    # Draw the filled center square
-    pygame.draw.rect(screen, fill_color, (x, y, size, size))
-
-    # Draw the glow as fading rectangles
-    for i in range(1, glow_thickness + 1):
-        alpha = 255 * (1 - i / (glow_thickness + 1))
-        glow_surf = pygame.Surface(
-            (size + i * 2, size + i * 2), pygame.SRCALPHA)
-        faded_color = (*glow_color, int(alpha))
-        pygame.draw.rect(glow_surf, faded_color,
-                         (0, 0, size + i * 2, size + i * 2), width=1)
-        screen.blit(glow_surf, (x - i, y - i))
 
 
 class Board:
@@ -148,9 +133,25 @@ class Board:
                 x, y = move
                 if self.board_flipped:
                     x, y = 7 - x, 7 - y
-                cell_color = LIGHT_SQUARE if (x + y) % 2 == 0 else DARK_SQUARE
-                draw_glow_square(screen, x * self.cell_size + offset, y * self.cell_size,
-                                 self.cell_size, cell_color, GLOWY_RED, 5)
+
+                center_x = x * self.cell_size + self.cell_size // 2
+                center_y = y * self.cell_size + self.cell_size // 2
+
+                target = self.piece_at(
+                    x, y) if not self.board_flipped else self.piece_at(*move)
+                
+                alpha_surface.fill((0, 0, 0, 0)) # Clear the alpha surface
+
+                if target:
+                    circle_radius = int(self.cell_size * 0.5)
+                    circle_thickness = 7
+                    pygame.draw.circle(
+                        alpha_surface, TRANSPARENT_BLACK, (center_x, center_y), circle_radius, width=circle_thickness)
+                else:
+                    circle_radius = int(self.cell_size * 0.17)
+                    pygame.draw.circle(alpha_surface, TRANSPARENT_BLACK,
+                                       (center_x, center_y), circle_radius)
+                screen.blit(alpha_surface, (offset, 0))
 
         # Draw the a, b, c or 1, 2, 3 labels
         for i in range(8):
@@ -182,24 +183,32 @@ class Board:
 
         cell = self.cell_size
         piece_size = int(cell * 0.4)
-        group_margin_x = piece_size + 15
-        horizontal_stack_offset = 8  # How much each stacked piece is offset right
+        horizontal_stack_offset = 8  # space between pieces in same group
 
         def draw_stacked_groups(pieces, x_start, y_start):
             grouped = defaultdict(list)
             for piece in pieces:
                 grouped[piece.name].append(piece)
 
-            for group_index, (name, group) in enumerate(
-                sorted(grouped.items(), key=lambda item: self.piece_points.get(
-                    item[0], 0), reverse=False)
-            ):
-                base_x = x_start + group_index * group_margin_x
+            # Sort piece types by value
+            sorted_groups = sorted(
+                grouped.items(),
+                key=lambda item: self.piece_points.get(item[0], 0),
+                reverse=False
+            )
+
+            current_x = x_start
+            for name, group in sorted_groups:
                 for i, piece in enumerate(group):
                     icon = pygame.transform.scale(
                         piece.texture, (piece_size, piece_size))
                     screen.blit(
-                        icon, (base_x + i * horizontal_stack_offset, y_start))
+                        icon, (current_x + i * horizontal_stack_offset, y_start))
+
+                # Move current_x forward based on how wide this group was
+                group_width = len(group) * horizontal_stack_offset + piece_size
+                group_spacing = -10
+                current_x += group_width + group_spacing  # extra spacing between groups
 
         # Top row: black pieces captured by white
         captured_black = self.captured_pieces['white']

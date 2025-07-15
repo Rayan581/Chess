@@ -313,4 +313,7 @@ class Piece:
 
         self.__remove_invalid_moves(board)
 
+        # Remove duplicates
+        self.valid_moves = list(set(self.valid_moves))
+
         return self.valid_moves
