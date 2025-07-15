@@ -142,7 +142,7 @@ class Board:
 
                 alpha_surface.fill((0, 0, 0, 0))  # Clear the alpha surface
 
-                if target or move == self.en_passant_target:
+                if target or (move == self.en_passant_target and self.selected_piece.name == 'pawn'):
                     circle_radius = int(self.cell_size * 0.5)
                     circle_thickness = 7
                     pygame.draw.circle(
@@ -461,3 +461,18 @@ class Board:
         self.board_flipped = False
         self.valid_moves_dirty = True
         self.captured_pieces = {color: [] for color in self.pieces.keys()}
+
+    def _draw_end_message(self, screen, message, alpha):
+        width, height = screen.get_size()
+        print(alpha)
+
+        # 1. Draw transparent black overlay
+        overlay = pygame.Surface((width, height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, alpha))  # Black with 180 alpha
+        screen.blit(overlay, (0, 0))
+
+        # 2. Draw the message in center
+        font = pygame.font.Font(None, 64)
+        text_surface = font.render(message, True, (255, 20, 50))
+        text_rect = text_surface.get_rect(center=(width // 2, height // 2))
+        screen.blit(text_surface, text_rect)

@@ -20,6 +20,8 @@ def main():
 
     running = True
     game_over = False
+    end_message_alpha = 0
+
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -28,20 +30,26 @@ def main():
                 if event.key == pygame.K_ESCAPE:
                     running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
+                if event.button == 1 and not game_over:
                     mouse_x, mouse_y = pygame.mouse.get_pos()
                     board.handle_click(mouse_x, mouse_y, OFFSET)
-
-        if board.is_checkmate():
-            print(f"{board.current_turn} is in checkmate!")
-            game_over = True
-        elif board.is_stalemate():
-            print(f"{board.current_turn} is in stalemate!")
-            game_over = True
 
         screen.fill(GRAY)
 
         board.draw(screen, WIDTH, HEIGHT, OFFSET)
+
+        if board.is_checkmate():
+            # print(f"{board.current_turn} is in checkmate!")
+            winner = 'BLACK' if board.current_turn == 'white' else 'WHITE'
+            board._draw_end_message(
+                screen, f'{winner} won by CHECKMATE', end_message_alpha)
+            end_message_alpha = min(end_message_alpha + 1, 180)
+            game_over = True
+        elif board.is_stalemate():
+            # print(f"{board.current_turn} is in stalemate!")
+            board._draw_end_message(screen, 'STALEMATE', end_message_alpha)
+            end_message_alpha = min(end_message_alpha + 1, 180)
+            game_over = True
 
         pygame.display.flip()
         clock.tick(60)
