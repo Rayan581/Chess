@@ -77,8 +77,8 @@ class Board:
             y = 0
             p_y = 1
 
-    def __draw_font(self, screen, text, x, y, size, font, color):
-        font = pygame.font.Font(font, size)
+    def __draw_font(self, screen, text, x, y, size, _font, color):
+        font = pygame.font.Font(_font, size)
         text_surface = font.render(text, True, color)
         text_rect = text_surface.get_rect(center=(x, y))
         screen.blit(text_surface, text_rect)
@@ -453,15 +453,6 @@ class Board:
         # No legal moves found and not in check → stalemate
         return True
 
-    def reset(self):
-        self.initialize_pieces()
-        self.current_turn = 'white'
-        self.selected_piece = None
-        self.available_moves = []
-        self.board_flipped = False
-        self.valid_moves_dirty = True
-        self.captured_pieces = {color: [] for color in self.pieces.keys()}
-
     def _draw_end_message(self, screen, message, alpha):
         width, height = screen.get_size()
         print(alpha)
@@ -472,7 +463,7 @@ class Board:
         screen.blit(overlay, (0, 0))
 
         # 2. Draw the message in center
-        font = pygame.font.Font(None, 64)
-        text_surface = font.render(message, True, (255, 20, 50))
-        text_rect = text_surface.get_rect(center=(width // 2, height // 2))
-        screen.blit(text_surface, text_rect)
+        self.__draw_font(screen, message, width // 2,
+                         height // 2, 64, None, (255, 255, 255))
+        self.__draw_font(screen, 'Press R to Restart', width // 2,
+                         height // 2 + 30, 44, None, (255, 255, 255))

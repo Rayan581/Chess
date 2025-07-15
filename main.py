@@ -22,6 +22,19 @@ def main():
     game_over = False
     end_message_alpha = 0
 
+    def restart_game():
+        board.initialize_pieces()
+        board.current_turn = 'white'
+        board.selected_piece = None
+        board.available_moves = []
+        board.valid_moves_dirty = True
+        board.board_flipped = False
+        board.captured_pieces = {'white': [], 'black': []}
+        board.en_passant_target = None
+        nonlocal game_over, end_message_alpha
+        game_over = False
+        end_message_alpha = 0
+
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -29,6 +42,8 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     running = False
+                elif event.key == pygame.K_r and game_over:
+                    restart_game()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1 and not game_over:
                     mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -43,12 +58,12 @@ def main():
             winner = 'BLACK' if board.current_turn == 'white' else 'WHITE'
             board._draw_end_message(
                 screen, f'{winner} won by CHECKMATE', end_message_alpha)
-            end_message_alpha = min(end_message_alpha + 1, 180)
+            end_message_alpha = min(end_message_alpha + 5, 180)
             game_over = True
         elif board.is_stalemate():
             # print(f"{board.current_turn} is in stalemate!")
             board._draw_end_message(screen, 'STALEMATE', end_message_alpha)
-            end_message_alpha = min(end_message_alpha + 1, 180)
+            end_message_alpha = min(end_message_alpha + 5, 180)
             game_over = True
 
         pygame.display.flip()
