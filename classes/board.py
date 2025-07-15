@@ -320,8 +320,6 @@ class Board:
         # Move piece
         self.selected_piece.move_to(x, y)
 
-        print(self.en_passant_target)
-
         self.selected_piece.has_moved = True
 
         # If the piece is a pawn and reaches the opposite end, promote it
