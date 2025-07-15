@@ -19,11 +19,12 @@ class Board:
         self.valid_moves = {}
         self.board_flipped = False
         self.valid_moves_dirty = True
-        self.initialize_pieces()
         self.current_turn = 'white'
         self.selected_piece = None
         self.available_moves = []
         self.pawn_promotion = False
+        self.en_passant_target = None
+        self.initialize_pieces()
 
         self.piece_points = {
             'pawn': 1,
@@ -137,12 +138,11 @@ class Board:
                 center_x = x * self.cell_size + self.cell_size // 2
                 center_y = y * self.cell_size + self.cell_size // 2
 
-                target = self.piece_at(
-                    x, y) if not self.board_flipped else self.piece_at(*move)
-                
-                alpha_surface.fill((0, 0, 0, 0)) # Clear the alpha surface
+                target = self.piece_at(*move)
 
-                if target:
+                alpha_surface.fill((0, 0, 0, 0))  # Clear the alpha surface
+
+                if target or move == self.en_passant_target:
                     circle_radius = int(self.cell_size * 0.5)
                     circle_thickness = 7
                     pygame.draw.circle(
@@ -297,6 +297,11 @@ class Board:
         else:
             target_piece = self.piece_at(x, y)
 
+            # En passant capture logic
+            if self.selected_piece.name == 'pawn' and (x, y) == self.en_passant_target:
+                direction = 1 if self.selected_piece.color == 'black' else -1
+                target_piece = self.piece_at(x, y - direction)
+
             # Capture logic
             if target_piece:
                 self.pieces[target_piece.color].remove(target_piece)
@@ -306,8 +311,17 @@ class Board:
             else:
                 sound_to_play = 'move'
 
+        # Check if en passant is available
+        if self.selected_piece.name == 'pawn' and abs(self.selected_piece.y - y) == 2:
+            self.en_passant_target = (x, (self.selected_piece.y + y) // 2)
+        else:
+            self.en_passant_target = None
+
         # Move piece
         self.selected_piece.move_to(x, y)
+
+        print(self.en_passant_target)
+
         self.selected_piece.has_moved = True
 
         # If the piece is a pawn and reaches the opposite end, promote it

@@ -144,8 +144,13 @@ class Piece:
             target_y = self.y + direction
 
             if 0 <= target_x < 8 and 0 <= target_y < 8:
+                # Normal capture
                 target_piece = board.piece_at(target_x, target_y)
                 if target_piece and target_piece.color != self.color:
+                    self.valid_moves.append((target_x, target_y))
+
+                # En passant capture
+                if board.en_passant_target == (target_x, target_y):
                     self.valid_moves.append((target_x, target_y))
 
     def __king_moves(self, board):
