@@ -24,6 +24,7 @@ class Board:
         self.available_moves = []
         self.pawn_promotion = False
         self.en_passant_target = None
+        self.move_history = []
         self.initialize_pieces()
 
         self.piece_points = {
@@ -157,11 +158,11 @@ class Board:
         for i in range(8):
             label = chr(97 + i) if not self.board_flipped else chr(104 - i)
             self._draw_font(screen, label, self.cell_size * (i + 1) - 10 + offset, height - 10,
-                             15, 'freesansbold.ttf', (0, 0, 0))
+                            15, 'freesansbold.ttf', (0, 0, 0))
 
-            label = str(i + 1) if not self.board_flipped else str(8 - i)
+            label = str(i + 1) if self.board_flipped else str(8 - i)
             self._draw_font(screen, label, 10 + offset, self.cell_size * i + 10,
-                             15, 'freesansbold.ttf', (0, 0, 0))
+                            15, 'freesansbold.ttf', (0, 0, 0))
 
         if self.pawn_promotion:
             self.__draw_promotion_menu(screen)
@@ -231,8 +232,19 @@ class Board:
                 # Replace the pawn with the selected piece
                 new_piece = Piece(self.current_turn, piece_name,
                                   self.selected_piece.x, self.selected_piece.y)
+
+                from_pos = (self.selected_piece.x, self.selected_piece.y)
+                to_pos = (new_piece.x, new_piece.y)
+                promotion_letter = piece_name[0].upper()
+
                 self.pieces[self.current_turn].remove(self.selected_piece)
                 self.pieces[self.current_turn].append(new_piece)
+
+                # Log promotion move in notation
+                notation = self._get_notation(
+                    new_piece, from_pos, to_pos, promotion=promotion_letter)
+                self.move_history.append(notation)
+                print("Move:", notation)
 
                 self.selected_piece = None
                 self.current_turn = 'black' if self.current_turn == 'white' else 'white'
@@ -267,7 +279,7 @@ class Board:
 
             # If clicked on a valid move square, allow move
             elif (cell_x, cell_y) in self.available_moves:
-                self.__move_piece(cell_x, cell_y)
+                self._move_piece(cell_x, cell_y)
             else:
                 # Clicked elsewhere: unselect
                 self.selected_piece = None
@@ -279,8 +291,15 @@ class Board:
 
         sounds.play_sound(sound_to_play)
 
-    def __move_piece(self, x, y):
+    def _move_piece(self, x, y):
         global sound_to_play
+
+        from_x, from_y = self.selected_piece.x, self.selected_piece.y
+        to_x, to_y = x, y
+        promotion = None
+
+        notation = self._get_notation(
+            self.selected_piece, (from_x, from_y), (to_x, to_y), promotion)
 
         # Move the king to castle
         if self.selected_piece.name == 'king' and abs(self.selected_piece.x - x) > 1:
@@ -341,10 +360,15 @@ class Board:
 
         if self.is_king_in_check(self.current_turn):
             sound_to_play = 'check'
+            notation += '+'
         if self.is_checkmate():
             sound_to_play = 'checkmate'
+            notation = notation[:-1] + '#'
         elif self.is_stalemate():
             sound_to_play = 'stalemate'
+
+        self.move_history.append(notation)
+        print("Move: ", notation)
 
     def piece_at(self, x, y):
         for clr in self.pieces.keys():
@@ -387,8 +411,6 @@ class Board:
         return king_pos in enemy_attacks
 
     def is_checkmate(self):
-        import copy
-
         color = self.current_turn
         if not self.is_king_in_check(color):
             return False
@@ -410,6 +432,7 @@ class Board:
                     piece.move_to(*original_pos)
                     if captured:
                         self.pieces[captured.color].append(captured)
+
                     return False
 
                 # Undo the move
@@ -455,7 +478,6 @@ class Board:
 
     def _draw_end_message(self, screen, message, alpha):
         width, height = screen.get_size()
-        print(alpha)
 
         # 1. Draw transparent black overlay
         overlay = pygame.Surface((width, height), pygame.SRCALPHA)
@@ -464,6 +486,60 @@ class Board:
 
         # 2. Draw the message in center
         self._draw_font(screen, message, width // 2,
-                         height // 2, 64, None, (255, 255, 255))
+                        height // 2, 64, None, (255, 255, 255))
         self._draw_font(screen, 'Press R to Restart', width // 2,
-                         height // 2 + 30, 44, None, (255, 255, 255))
+                        height // 2 + 30, 44, None, (255, 255, 255))
+
+    def _get_notation(self, piece, from_pos, to_pos, promotion=None):
+        col_map = 'abcdefgh'
+        from_x, from_y = from_pos
+        to_x, to_y = to_pos
+
+        # Handle castling
+        if piece.name == 'king' and abs(from_x - to_x) == 2:
+            return "O-O" if to_x > from_x else "O-O-O"
+
+        # Piece letter
+        piece_letter = {
+            'pawn': '',
+            'knight': 'N',
+            'bishop': 'B',
+            'rook': 'R',
+            'queen': 'Q',
+            'king': 'K'
+        }.get(piece.name, '')
+
+        # Detect if it's a capture
+        is_capture = self.piece_at(to_x, to_y) is not None or \
+            (piece.name == 'pawn' and (to_x, to_y) == self.en_passant_target)
+
+        # Disambiguation (only if needed)
+        similar_pieces = [
+            p for p in self.pieces[piece.color]
+            if p.name == piece.name and p != piece and (to_x, to_y) in p.get_valid_moves(self)
+        ]
+
+        disambiguate = ""
+        if similar_pieces:
+            same_file = any(p.x == from_x for p in similar_pieces)
+            same_rank = any(p.y == from_y for p in similar_pieces)
+            if not same_file:
+                disambiguate = col_map[from_x]
+            elif not same_rank:
+                disambiguate = str(8 - from_y)
+            else:
+                disambiguate = f"{col_map[from_x]}{8 - from_y}"
+
+        # Compose notation
+        notation = piece_letter + disambiguate
+        if is_capture:
+            if piece.name == 'pawn' and not disambiguate:
+                notation += col_map[from_x]
+            notation += "x"
+        notation += f"{col_map[to_x]}{8 - to_y}"
+
+        # Promotion
+        if promotion:
+            notation += f"={promotion.upper()}"
+
+        return notation
