@@ -1,3 +1,4 @@
+from datetime import datetime
 import re
 import pygame
 from classes import Board
@@ -8,7 +9,7 @@ ROWS, COLS = 8, 8
 CELL_SIZE = WIDTH // COLS
 
 GRAY = (128, 128, 128)
-TOTAL_TIME = 600
+TOTAL_TIME = 6000
 
 
 def parse_move(board, notation):
@@ -87,6 +88,38 @@ def format_time(seconds):
     return f"{minutes:02}:{secs:02}"
 
 
+def generate_pgn(move_list, white_name="White", black_name="Black", result="*", winner=None, termination=""):
+    now = datetime.now()
+    date_str = now.strftime("%Y-%m-%d")
+
+    if winner:
+        termination = f'{winner} won by ' + termination
+
+    headers = [
+        f'[Event "Vs. Player"]',
+        f'[Site "Pygame Chess"]',
+        f'[Date "{date_str}"]',
+        f'[White "{white_name}"]',
+        f'[Black "{black_name}"]',
+        f'[Result "{result}"]',
+        f'[WhiteElo "10"]',
+        f'[BlackElo "10"]',
+        f'[TimeControl "-"]',
+        f'[Termination "{termination}"]'
+    ]
+
+    # Format moves into numbered PGN
+    pgn_moves = []
+    for i in range(0, len(move_list), 2):
+        turn_num = i // 2 + 1
+        white_move = move_list[i]
+        black_move = move_list[i + 1] if i + 1 < len(move_list) else ""
+        pgn_moves.append(f"{turn_num}. {white_move} {black_move}".strip())
+
+    pgn_body = " ".join(pgn_moves)
+    return "\n".join(headers) + "\n" + pgn_body + (f" {result}" if not pgn_body.endswith(result) else "")
+
+
 def main():
     pygame.init()
 
@@ -101,6 +134,10 @@ def main():
     end_message_alpha = 0
     white_time = black_time = TOTAL_TIME
     last_tick = pygame.time.get_ticks()
+    pgn_saved = False
+    result = ""
+    winner_color = ""
+    termination = ""
 
     # moves_list = ['e4', 'e5', 'Nf3', 'Nc6']
     # make_moves(moves_list, board)
@@ -120,6 +157,11 @@ def main():
         nonlocal white_time, black_time, last_tick
         white_time = black_time = TOTAL_TIME
         last_tick = pygame.time.get_ticks()
+        nonlocal pgn_saved, result, winner, termination
+        pgn_saved = False
+        result = ""
+        winner_color = ""
+        termination = ""
 
     while running:
         for event in pygame.event.get():
@@ -173,15 +215,28 @@ def main():
         if board.is_checkmate():
             # print(f"{board.current_turn} is in checkmate!")
             winner = 'BLACK' if board.current_turn == 'white' else 'WHITE'
+            if winner == 'BLACK':
+                result = '0-1'
+            else:
+                result = '1-0'
+
             board._draw_end_message(
                 screen, f'{winner} won by CHECKMATE', end_message_alpha)
             end_message_alpha = min(end_message_alpha + 5, 180)
+            termination = "checkmate"
             game_over = True
         elif board.is_stalemate():
             # print(f"{board.current_turn} is in stalemate!")
             board._draw_end_message(screen, 'STALEMATE', end_message_alpha)
             end_message_alpha = min(end_message_alpha + 5, 180)
             game_over = True
+            termination = "Game drawn by stalemate"
+        
+        if game_over and not pgn_saved:
+            pgn = generate_pgn(board.move_history, "WHITE", "BLACK", result, winner, termination)
+            with open("my_game.pgn", "w", encoding="utf-8") as file:
+                file.write(pgn)
+            pgn_saved = True
 
         pygame.display.flip()
         clock.tick(60)
