@@ -9,7 +9,7 @@ ROWS, COLS = 8, 8
 CELL_SIZE = WIDTH // COLS
 
 GRAY = (128, 128, 128)
-TOTAL_TIME = 6000
+TOTAL_TIME = 5
 
 
 def parse_move(board, notation):
@@ -88,12 +88,9 @@ def format_time(seconds):
     return f"{minutes:02}:{secs:02}"
 
 
-def generate_pgn(move_list, white_name="White", black_name="Black", result="*", winner=None, termination=""):
+def generate_pgn(move_list, white_name="White", black_name="Black", result="*", termination="", time_control="0"):
     now = datetime.now()
     date_str = now.strftime("%Y-%m-%d")
-
-    if winner:
-        termination = f'{winner} won by ' + termination
 
     headers = [
         f'[Event "Vs. Player"]',
@@ -104,7 +101,7 @@ def generate_pgn(move_list, white_name="White", black_name="Black", result="*", 
         f'[Result "{result}"]',
         f'[WhiteElo "10"]',
         f'[BlackElo "10"]',
-        f'[TimeControl "-"]',
+        f'[TimeControl "{time_control}"]',
         f'[Termination "{termination}"]'
     ]
 
@@ -136,7 +133,6 @@ def main():
     last_tick = pygame.time.get_ticks()
     pgn_saved = False
     result = ""
-    winner_color = ""
     termination = ""
 
     # moves_list = ['e4', 'e5', 'Nf3', 'Nc6']
@@ -160,7 +156,6 @@ def main():
         nonlocal pgn_saved, result, winner, termination
         pgn_saved = False
         result = ""
-        winner_color = ""
         termination = ""
 
     while running:
@@ -194,11 +189,15 @@ def main():
         if white_time <= 0:
             board._draw_end_message(
                 screen, "BLACK won by TIME OUT", end_message_alpha)
+            termination = "BLACK won on time"
+            result = "0-1"
             end_message_alpha = min(end_message_alpha + 5, 180)
             game_over = True
         elif black_time <= 0:
             board._draw_end_message(
                 screen, "WHITE won by TIME OUT", end_message_alpha)
+            termination = "WHITE won on time"
+            result = "1-0"
             end_message_alpha = min(end_message_alpha + 5, 180)
             game_over = True
 
@@ -223,7 +222,7 @@ def main():
             board._draw_end_message(
                 screen, f'{winner} won by CHECKMATE', end_message_alpha)
             end_message_alpha = min(end_message_alpha + 5, 180)
-            termination = "checkmate"
+            termination = f'{winner} won by checkmate'
             game_over = True
         elif board.is_stalemate():
             # print(f"{board.current_turn} is in stalemate!")
@@ -231,9 +230,11 @@ def main():
             end_message_alpha = min(end_message_alpha + 5, 180)
             game_over = True
             termination = "Game drawn by stalemate"
-        
+            result = "1/2-1/2"
+
         if game_over and not pgn_saved:
-            pgn = generate_pgn(board.move_history, "WHITE", "BLACK", result, winner, termination)
+            pgn = generate_pgn(board.move_history, "WHITE",
+                               "BLACK", result, termination, str(TOTAL_TIME))
             with open("my_game.pgn", "w", encoding="utf-8") as file:
                 file.write(pgn)
             pgn_saved = True
