@@ -233,9 +233,11 @@ def main():
             result = "1/2-1/2"
 
         if game_over and not pgn_saved:
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            filename = f"game_{timestamp}.pgn"
             pgn = generate_pgn(board.move_history, "WHITE",
                                "BLACK", result, termination, str(TOTAL_TIME))
-            with open("my_game.pgn", "w", encoding="utf-8") as file:
+            with open(filename, "w", encoding="utf-8") as file:
                 file.write(pgn)
             pgn_saved = True
 
