@@ -7,6 +7,13 @@ ROWS, COLS = 8, 8
 CELL_SIZE = WIDTH // COLS
 
 GRAY = (128, 128, 128)
+TOTAL_TIME = 600
+
+
+def format_time(seconds):
+    minutes = int(seconds) // 60
+    secs = int(seconds) % 60
+    return f"{minutes:02}:{secs:02}"
 
 
 def main():
@@ -21,6 +28,8 @@ def main():
     running = True
     game_over = False
     end_message_alpha = 0
+    white_time = black_time = TOTAL_TIME
+    last_tick = pygame.time.get_ticks()
 
     def restart_game():
         board.initialize_pieces()
@@ -34,6 +43,9 @@ def main():
         nonlocal game_over, end_message_alpha
         game_over = False
         end_message_alpha = 0
+        nonlocal white_time, black_time, last_tick
+        white_time = black_time = TOTAL_TIME
+        last_tick = pygame.time.get_ticks()
 
     while running:
         for event in pygame.event.get():
@@ -49,9 +61,40 @@ def main():
                     mouse_x, mouse_y = pygame.mouse.get_pos()
                     board.handle_click(mouse_x, mouse_y, OFFSET)
 
+        if not game_over:
+            now = pygame.time.get_ticks()
+            delta_time = (now - last_tick) / 1000
+            last_tick = now
+
+            if board.current_turn == 'white':
+                white_time -= delta_time
+            else:
+                black_time -= delta_time
+
         screen.fill(GRAY)
 
         board.draw(screen, WIDTH, HEIGHT, OFFSET)
+
+        if white_time <= 0:
+            board._draw_end_message(
+                screen, "BLACK won by TIME OUT", end_message_alpha)
+            end_message_alpha = min(end_message_alpha + 5, 180)
+            game_over = True
+        elif black_time <= 0:
+            board._draw_end_message(
+                screen, "WHITE won by TIME OUT", end_message_alpha)
+            end_message_alpha = min(end_message_alpha + 5, 180)
+            game_over = True
+
+        font = pygame.font.Font(None, 36)
+
+        white_time_text = font.render(
+            f"White: {format_time(white_time)}", True, (255, 255, 255))
+        black_time_text = font.render(
+            f"Black: {format_time(black_time)}", True, (255, 255, 255))
+
+        screen.blit(white_time_text, (OFFSET + WIDTH + 10, HEIGHT // 2 - 90))
+        screen.blit(black_time_text, (OFFSET + WIDTH + 10, HEIGHT // 2 + 50))
 
         if board.is_checkmate():
             # print(f"{board.current_turn} is in checkmate!")

@@ -77,7 +77,7 @@ class Board:
             y = 0
             p_y = 1
 
-    def __draw_font(self, screen, text, x, y, size, _font, color):
+    def _draw_font(self, screen, text, x, y, size, _font, color):
         font = pygame.font.Font(_font, size)
         text_surface = font.render(text, True, color)
         text_rect = text_surface.get_rect(center=(x, y))
@@ -156,11 +156,11 @@ class Board:
         # Draw the a, b, c or 1, 2, 3 labels
         for i in range(8):
             label = chr(97 + i) if not self.board_flipped else chr(104 - i)
-            self.__draw_font(screen, label, self.cell_size * (i + 1) - 10 + offset, height - 10,
+            self._draw_font(screen, label, self.cell_size * (i + 1) - 10 + offset, height - 10,
                              15, 'freesansbold.ttf', (0, 0, 0))
 
             label = str(i + 1) if not self.board_flipped else str(8 - i)
-            self.__draw_font(screen, label, 10 + offset, self.cell_size * i + 10,
+            self._draw_font(screen, label, 10 + offset, self.cell_size * i + 10,
                              15, 'freesansbold.ttf', (0, 0, 0))
 
         if self.pawn_promotion:
@@ -463,7 +463,7 @@ class Board:
         screen.blit(overlay, (0, 0))
 
         # 2. Draw the message in center
-        self.__draw_font(screen, message, width // 2,
+        self._draw_font(screen, message, width // 2,
                          height // 2, 64, None, (255, 255, 255))
-        self.__draw_font(screen, 'Press R to Restart', width // 2,
+        self._draw_font(screen, 'Press R to Restart', width // 2,
                          height // 2 + 30, 44, None, (255, 255, 255))
