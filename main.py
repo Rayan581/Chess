@@ -1,6 +1,7 @@
 from datetime import datetime
 import re
 import pygame
+import os
 from classes import Board
 
 WIDTH, HEIGHT = 640, 640
@@ -234,10 +235,13 @@ def main():
 
         if game_over and not pgn_saved:
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            os.makedirs("games", exist_ok=True)
             filename = f"game_{timestamp}.pgn"
+            filepath = os.path.join("games", filename)
+
             pgn = generate_pgn(board.move_history, "WHITE",
                                "BLACK", result, termination, str(TOTAL_TIME))
-            with open(filename, "w", encoding="utf-8") as file:
+            with open(filepath, "w", encoding="utf-8") as file:
                 file.write(pgn)
             pgn_saved = True
 
