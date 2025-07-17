@@ -10,7 +10,7 @@ ROWS, COLS = 8, 8
 CELL_SIZE = WIDTH // COLS
 
 GRAY = (128, 128, 128)
-TOTAL_TIME = 5
+TOTAL_TIME = 600
 
 
 def parse_move(board, notation):
