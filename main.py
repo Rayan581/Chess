@@ -148,12 +148,18 @@ def main():
         board.board_flipped = False
         board.captured_pieces = {'white': [], 'black': []}
         board.en_passant_target = None
+        board.move_history = []
+        board.last_captured = None
+        board.moved_piece_prev_coord = None
+
         nonlocal game_over, end_message_alpha
         game_over = False
         end_message_alpha = 0
+
         nonlocal white_time, black_time, last_tick
         white_time = black_time = TOTAL_TIME
         last_tick = pygame.time.get_ticks()
+
         nonlocal pgn_saved, result, winner, termination
         pgn_saved = False
         result = ""

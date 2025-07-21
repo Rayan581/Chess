@@ -25,6 +25,8 @@ class Board:
         self.pawn_promotion = False
         self.en_passant_target = None
         self.move_history = []
+        self.last_captured = None
+        self.moved_piece_prev_coord = None
         self.initialize_pieces()
 
         self.piece_points = {
@@ -227,30 +229,45 @@ class Board:
         self.__draw_captured_pieces(screen)
 
     def __promote(self, mouse_x, mouse_y):
+        global sound_to_play
+
         for piece_name, button in self.promotion_menu_buttons.items():
             if button.collidepoint(mouse_x, mouse_y):
                 # Replace the pawn with the selected piece
                 new_piece = Piece(self.current_turn, piece_name,
                                   self.selected_piece.x, self.selected_piece.y)
 
-                from_pos = (self.selected_piece.x, self.selected_piece.y)
+                from_pos = (self.moved_piece_prev_coord[0], self.moved_piece_prev_coord[1])
                 to_pos = (new_piece.x, new_piece.y)
                 promotion_letter = piece_name[0].upper()
-
-                self.pieces[self.current_turn].remove(self.selected_piece)
-                self.pieces[self.current_turn].append(new_piece)
+                promotion_letter = 'N' if promotion_letter == 'K' else promotion_letter
 
                 # Log promotion move in notation
                 notation = self._get_notation(
-                    new_piece, from_pos, to_pos, promotion=promotion_letter)
-                self.move_history.append(notation)
-                print("Move:", notation)
+                    self.selected_piece, from_pos, to_pos, promotion=promotion_letter)
+                self.last_captured = None
+
+                self.pieces[self.current_turn].remove(self.selected_piece)
+                self.pieces[self.current_turn].append(new_piece)
 
                 self.selected_piece = None
                 self.current_turn = 'black' if self.current_turn == 'white' else 'white'
                 self.pawn_promotion = False
                 self.valid_moves_dirty = True
                 self.board_flipped = not self.board_flipped
+
+                if self.is_king_in_check(self.current_turn):
+                    notation += '+'
+                    sound_to_play = 'capture'
+                if self.is_checkmate():
+                    notation = notation[:-1] + '#'
+                    sound_to_play = 'checkmate'
+                elif self.is_stalemate():
+                    sound_to_play = 'stalemate'
+                sounds.play_sound(sound_to_play)
+
+                self.move_history.append(notation)
+                print("Move:", notation)
 
     def handle_click(self, mouse_x, mouse_y, offset):
         global sound_to_play
@@ -297,6 +314,10 @@ class Board:
         from_x, from_y = self.selected_piece.x, self.selected_piece.y
         to_x, to_y = x, y
         promotion = None
+
+        self.last_captured = [False, self.piece_at(to_x, to_y) or (
+            self.selected_piece.name == 'pawn' and (to_x, to_y) == self.en_passant_target)]
+        self.moved_piece_prev_coord = (self.selected_piece.x, self.selected_piece.y)
 
         notation = self._get_notation(
             self.selected_piece, (from_x, from_y), (to_x, to_y), promotion)
@@ -347,7 +368,10 @@ class Board:
                (self.selected_piece.color == 'black' and y == 7):
                 self.pawn_promotion = True
                 self.available_moves = []
+                self.last_captured[0] = True
                 return
+        
+        self.last_captured = None if not self.last_captured[0] else self.last_captured
 
         # Reset selections
         self.selected_piece = None
@@ -510,8 +534,7 @@ class Board:
         }.get(piece.name, '')
 
         # Detect if it's a capture
-        is_capture = self.piece_at(to_x, to_y) is not None or \
-            (piece.name == 'pawn' and (to_x, to_y) == self.en_passant_target)
+        is_capture = self.last_captured[1]
 
         # Disambiguation (only if needed)
         similar_pieces = [
