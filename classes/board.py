@@ -18,6 +18,7 @@ class Board:
         self.captured_pieces = {}
         self.valid_moves = {}
         self.board_flipped = False
+        self.move_made = False
         self.valid_moves_dirty = True
         self.current_turn = 'white'
         self.selected_piece = None
@@ -237,7 +238,8 @@ class Board:
                 new_piece = Piece(self.current_turn, piece_name,
                                   self.selected_piece.x, self.selected_piece.y)
 
-                from_pos = (self.moved_piece_prev_coord[0], self.moved_piece_prev_coord[1])
+                from_pos = (
+                    self.moved_piece_prev_coord[0], self.moved_piece_prev_coord[1])
                 to_pos = (new_piece.x, new_piece.y)
                 promotion_letter = piece_name[0].upper()
                 promotion_letter = 'N' if promotion_letter == 'K' else promotion_letter
@@ -254,7 +256,7 @@ class Board:
                 self.current_turn = 'black' if self.current_turn == 'white' else 'white'
                 self.pawn_promotion = False
                 self.valid_moves_dirty = True
-                self.board_flipped = not self.board_flipped
+                self.move_made = True
 
                 if self.is_king_in_check(self.current_turn):
                     notation += '+'
@@ -317,7 +319,8 @@ class Board:
 
         self.last_captured = [False, self.piece_at(to_x, to_y) or (
             self.selected_piece.name == 'pawn' and (to_x, to_y) == self.en_passant_target)]
-        self.moved_piece_prev_coord = (self.selected_piece.x, self.selected_piece.y)
+        self.moved_piece_prev_coord = (
+            self.selected_piece.x, self.selected_piece.y)
 
         notation = self._get_notation(
             self.selected_piece, (from_x, from_y), (to_x, to_y), promotion)
@@ -370,7 +373,7 @@ class Board:
                 self.available_moves = []
                 self.last_captured[0] = True
                 return
-        
+
         self.last_captured = None if not self.last_captured[0] else self.last_captured
 
         # Reset selections
@@ -379,8 +382,8 @@ class Board:
 
         # Update board state
         self.valid_moves_dirty = True
-        self.board_flipped = not self.board_flipped
         self.current_turn = 'black' if self.current_turn == 'white' else 'white'
+        self.move_made = True
 
         if self.is_king_in_check(self.current_turn):
             sound_to_play = 'check'

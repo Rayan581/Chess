@@ -10,7 +10,8 @@ ROWS, COLS = 8, 8
 CELL_SIZE = WIDTH // COLS
 
 GRAY = (128, 128, 128)
-TOTAL_TIME = 600
+TOTAL_TIME = 600 # Time in seconds
+FLIP_DELAY_MS = 600  # Delay in milliseconds
 
 
 def parse_move(board, notation):
@@ -135,6 +136,7 @@ def main():
     pgn_saved = False
     result = ""
     termination = ""
+    flip_timer = 0
 
     # moves_list = ['e4', 'e5', 'Nf3', 'Nc6']
     # make_moves(moves_list, board)
@@ -151,12 +153,14 @@ def main():
         board.move_history = []
         board.last_captured = None
         board.moved_piece_prev_coord = None
+        board.move_made = False
 
         nonlocal game_over, end_message_alpha
         game_over = False
         end_message_alpha = 0
 
-        nonlocal white_time, black_time, last_tick
+        nonlocal white_time, black_time, last_tick, flip_timer
+        flip_timer = 0
         white_time = black_time = TOTAL_TIME
         last_tick = pygame.time.get_ticks()
 
@@ -178,6 +182,14 @@ def main():
                 if event.button == 1 and not game_over:
                     mouse_x, mouse_y = pygame.mouse.get_pos()
                     board.handle_click(mouse_x, mouse_y, OFFSET)
+        
+        if board.move_made:
+            flip_timer = pygame.time.get_ticks() + FLIP_DELAY_MS
+            board.move_made = False
+        
+        if flip_timer and now >= flip_timer:
+            board.board_flipped = not board.board_flipped
+            flip_timer = 0
 
         if not game_over:
             now = pygame.time.get_ticks()
