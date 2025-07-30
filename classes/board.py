@@ -173,7 +173,8 @@ class Board:
     def __draw_pieces(self, screen, offset_h, offset_v):
         for color in self.pieces.keys():
             for piece in self.pieces[color]:
-                piece.draw(screen, self.cell_size, offset_h, offset_v, self.board_flipped)
+                piece.draw(screen, self.cell_size, offset_h,
+                           offset_v, self.board_flipped)
 
     def __get_sorted_captured_pieces(self, color):
         return sorted(
@@ -182,7 +183,7 @@ class Board:
             reverse=False
         )
 
-    def __draw_captured_pieces(self, screen):
+    def __draw_captured_pieces(self, screen, width, height, offset_h, offset_v):
         from collections import defaultdict
 
         cell = self.cell_size
@@ -210,24 +211,33 @@ class Board:
                         icon, (current_x + i * horizontal_stack_offset_h, y_start))
 
                 # Move current_x forward based on how wide this group was
-                group_width = len(group) * horizontal_stack_offset_h + piece_size
+                group_width = len(group) * \
+                    horizontal_stack_offset_h + piece_size
                 group_spacing = -10
                 current_x += group_width + group_spacing  # extra spacing between groups
 
         # Top row: black pieces captured by white
         captured_black = self.captured_pieces['white']
-        draw_stacked_groups(captured_black, x_start=10, y_start=5)
+        draw_stacked_groups(captured_black, x_start=10,
+                            y_start=offset_v + height // 2 - piece_size - 5)
 
         # Bottom row: white pieces captured by black
         captured_white = self.captured_pieces['black']
         y_start_bottom = 8 * cell - piece_size - 5
-        draw_stacked_groups(captured_white, x_start=10, y_start=y_start_bottom)
+        draw_stacked_groups(captured_white, x_start=10,
+                            y_start=offset_v + height // 2 + piece_size)
+
+        pygame.draw.line(screen, (255, 255, 255), (10, offset_v +
+                                                   height // 2 + 10), (offset_h - 10, offset_v + height // 2 + 10), 3)
+        pygame.draw.line(screen, (0, 0, 0), (10, offset_v +
+                                             height // 2 + 13), (offset_h - 10, offset_v + height // 2 + 13), 3)
 
     def draw(self, screen, width, height, offset_h, offset_v):
         alpha_surface = pygame.Surface((width, height), pygame.SRCALPHA)
-        self.__draw_board(screen, alpha_surface, width, height, offset_h, offset_v)
+        self.__draw_board(screen, alpha_surface, width,
+                          height, offset_h, offset_v)
         self.__draw_pieces(screen, offset_h, offset_v)
-        self.__draw_captured_pieces(screen)
+        self.__draw_captured_pieces(screen, width, height, offset_h, offset_v)
 
     def __promote(self, mouse_x, mouse_y):
         global sound_to_play
