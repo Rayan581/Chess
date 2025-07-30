@@ -19,7 +19,7 @@ class Piece:
             BASE_DIR, "assets", "pieces", self.color, f"{piece_name}.png")
         return pygame.image.load(texture_path).convert_alpha()
 
-    def draw(self, screen, cell_size, offset, board_flipped=False):
+    def draw(self, screen, cell_size, offset_h, offset_v, board_flipped=False):
         if self.x < 0 or self.x >= 8 or self.y < 0 or self.y >= 8:
             return
 
@@ -32,7 +32,7 @@ class Piece:
 
         scaled_texture = pygame.transform.scale(
             self.texture, (cell_size, cell_size))
-        screen.blit(scaled_texture, (x + offset, y))
+        screen.blit(scaled_texture, (x + offset_h, y + offset_v))
 
     def move_to(self, x, y):
         if 0 <= x < 8 and 0 <= y < 8:

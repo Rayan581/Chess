@@ -5,12 +5,13 @@ import os
 from classes import Board
 
 WIDTH, HEIGHT = 640, 640
-OFFSET = 350
+OFFSET_H = 350
+OFFSET_V = 50
 ROWS, COLS = 8, 8
 CELL_SIZE = WIDTH // COLS
 
-GRAY = (128, 128, 128)
-TOTAL_TIME = 600 # Time in seconds
+GRAY = (50, 50, 50)
+TOTAL_TIME = 600  # Time in seconds
 FLIP_DELAY_MS = 600  # Delay in milliseconds
 
 
@@ -119,14 +120,34 @@ def generate_pgn(move_list, white_name="White", black_name="Black", result="*", 
     return "\n".join(headers) + "\n" + pgn_body + (f" {result}" if not pgn_body.endswith(result) else "")
 
 
+def draw_time(white_time, black_time, screen):
+    font = pygame.font.Font('assets/fonts/DANKMONO-REGULAR.OTF', 84)
+
+    white_time_text = font.render(
+        f"{format_time(white_time)}", True, (255, 255, 255))
+    black_time_text = font.render(
+        f"{format_time(black_time)}", True, (0, 0, 0))
+
+    screen.blit(white_time_text, (OFFSET_H + WIDTH +
+                                  (OFFSET_H // 2 - font.size(format_time(white_time))[0] // 2), OFFSET_V + HEIGHT // 2 - 90))
+    screen.blit(black_time_text, (OFFSET_H + WIDTH +
+                                  (OFFSET_H // 2 - font.size(format_time(black_time))[0] // 2), OFFSET_V + HEIGHT // 2 + 50))
+
+    pygame.draw.line(screen, (255, 255, 255), (OFFSET_H + WIDTH + 10, OFFSET_V +
+                     HEIGHT // 2 + 10), (OFFSET_H * 2 + WIDTH - 10, OFFSET_V + HEIGHT // 2 + 10), 3)
+    pygame.draw.line(screen, (0, 0, 0), (OFFSET_H + WIDTH + 10, OFFSET_V +
+                     HEIGHT // 2 + 13), (OFFSET_H * 2 + WIDTH - 10, OFFSET_V + HEIGHT // 2 + 13), 3)
+
+
 def main():
     pygame.init()
 
-    screen = pygame.display.set_mode((WIDTH + (OFFSET * 2), HEIGHT))
+    screen = pygame.display.set_mode(
+        (WIDTH + (OFFSET_H * 2), HEIGHT + (OFFSET_V * 2)))
     pygame.display.set_caption("Chess")
     clock = pygame.time.Clock()
 
-    board = Board(CELL_SIZE, OFFSET)
+    board = Board(CELL_SIZE, OFFSET_H)
 
     running = True
     game_over = False
@@ -181,12 +202,12 @@ def main():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1 and not game_over:
                     mouse_x, mouse_y = pygame.mouse.get_pos()
-                    board.handle_click(mouse_x, mouse_y, OFFSET)
-        
+                    board.handle_click(mouse_x, mouse_y, OFFSET_H, OFFSET_V)
+
         if board.move_made:
             flip_timer = pygame.time.get_ticks() + FLIP_DELAY_MS
             board.move_made = False
-        
+
         if flip_timer and now >= flip_timer:
             board.board_flipped = not board.board_flipped
             flip_timer = 0
@@ -203,7 +224,7 @@ def main():
 
         screen.fill(GRAY)
 
-        board.draw(screen, WIDTH, HEIGHT, OFFSET)
+        board.draw(screen, WIDTH, HEIGHT, OFFSET_H, OFFSET_V)
 
         if white_time <= 0:
             board._draw_end_message(
@@ -220,15 +241,7 @@ def main():
             end_message_alpha = min(end_message_alpha + 5, 180)
             game_over = True
 
-        font = pygame.font.Font(None, 36)
-
-        white_time_text = font.render(
-            f"White: {format_time(white_time)}", True, (255, 255, 255))
-        black_time_text = font.render(
-            f"Black: {format_time(black_time)}", True, (255, 255, 255))
-
-        screen.blit(white_time_text, (OFFSET + WIDTH + 10, HEIGHT // 2 - 90))
-        screen.blit(black_time_text, (OFFSET + WIDTH + 10, HEIGHT // 2 + 50))
+        draw_time(white_time, black_time, screen)
 
         if board.is_checkmate():
             # print(f"{board.current_turn} is in checkmate!")

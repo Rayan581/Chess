@@ -12,7 +12,7 @@ sound_to_play = ''
 
 
 class Board:
-    def __init__(self, cell_size, offset):
+    def __init__(self, cell_size, offset_h):
         self.cell_size = cell_size
         self.pieces = {}
         self.captured_pieces = {}
@@ -45,15 +45,15 @@ class Board:
             'knight': pygame.Rect(0, 0, cell_size, cell_size)
         }
 
-        menu_left_offset = (offset - (cell_size * 4)) // 2
+        menu_left_offset_h = (offset_h - (cell_size * 4)) // 2
         self.promotion_menu_buttons['queen'].topleft = (
-            menu_left_offset, cell_size * 3 + cell_size // 2)
+            menu_left_offset_h, cell_size * 3 + cell_size // 2)
         self.promotion_menu_buttons['rook'].topleft = (
-            menu_left_offset + cell_size, cell_size * 3 + cell_size // 2)
+            menu_left_offset_h + cell_size, cell_size * 3 + cell_size // 2)
         self.promotion_menu_buttons['bishop'].topleft = (
-            menu_left_offset + cell_size * 2, cell_size * 3 + cell_size // 2)
+            menu_left_offset_h + cell_size * 2, cell_size * 3 + cell_size // 2)
         self.promotion_menu_buttons['knight'].topleft = (
-            menu_left_offset + cell_size * 3, cell_size * 3 + cell_size // 2)
+            menu_left_offset_h + cell_size * 3, cell_size * 3 + cell_size // 2)
 
         sounds.play_sound('opening')
 
@@ -116,14 +116,14 @@ class Board:
         for button in self.promotion_menu_buttons.values():
             pygame.draw.rect(screen, (0, 0, 0), button, 2)
 
-    def __draw_board(self, screen, alpha_surface, width, height, offset):
+    def __draw_board(self, screen, alpha_surface, width, height, offset_h, offset_v):
         for i in range(8):
             for j in range(8):
                 cell_color = LIGHT_SQUARE if (i + j) % 2 == 0 else DARK_SQUARE
                 if self.board_flipped:
                     i, j = 7 - i, 7 - j
-                pygame.draw.rect(screen, cell_color, (j * self.cell_size + offset,
-                                                      i * self.cell_size, self.cell_size, self.cell_size))
+                pygame.draw.rect(screen, cell_color, (j * self.cell_size + offset_h,
+                                                      i * self.cell_size + offset_v, self.cell_size, self.cell_size))
 
         if self.selected_piece:
             x, y = self.selected_piece.x, self.selected_piece.y
@@ -131,7 +131,7 @@ class Board:
                 x, y = 7 - x, 7 - y
             pygame.draw.rect(alpha_surface, SELECTED_COLOR, (x * self.cell_size,
                                                              y * self.cell_size, self.cell_size, self.cell_size))
-            screen.blit(alpha_surface, (offset, 0))
+            screen.blit(alpha_surface, (offset_h, offset_v))
 
         if self.available_moves:
             for move in self.available_moves:
@@ -155,25 +155,25 @@ class Board:
                     circle_radius = int(self.cell_size * 0.17)
                     pygame.draw.circle(alpha_surface, TRANSPARENT_BLACK,
                                        (center_x, center_y), circle_radius)
-                screen.blit(alpha_surface, (offset, 0))
+                screen.blit(alpha_surface, (offset_h, offset_v))
 
         # Draw the a, b, c or 1, 2, 3 labels
         for i in range(8):
             label = chr(97 + i) if not self.board_flipped else chr(104 - i)
-            self._draw_font(screen, label, self.cell_size * (i + 1) - 10 + offset, height - 10,
+            self._draw_font(screen, label, self.cell_size * (i + 1) - 10 + offset_h, height - 10 + offset_v,
                             15, 'freesansbold.ttf', (0, 0, 0))
 
             label = str(i + 1) if self.board_flipped else str(8 - i)
-            self._draw_font(screen, label, 10 + offset, self.cell_size * i + 10,
+            self._draw_font(screen, label, 10 + offset_h, self.cell_size * i + 10 + offset_v,
                             15, 'freesansbold.ttf', (0, 0, 0))
 
         if self.pawn_promotion:
             self.__draw_promotion_menu(screen)
 
-    def __draw_pieces(self, screen, offset):
+    def __draw_pieces(self, screen, offset_h, offset_v):
         for color in self.pieces.keys():
             for piece in self.pieces[color]:
-                piece.draw(screen, self.cell_size, offset, self.board_flipped)
+                piece.draw(screen, self.cell_size, offset_h, offset_v, self.board_flipped)
 
     def __get_sorted_captured_pieces(self, color):
         return sorted(
@@ -187,7 +187,7 @@ class Board:
 
         cell = self.cell_size
         piece_size = int(cell * 0.4)
-        horizontal_stack_offset = 8  # space between pieces in same group
+        horizontal_stack_offset_h = 8  # space between pieces in same group
 
         def draw_stacked_groups(pieces, x_start, y_start):
             grouped = defaultdict(list)
@@ -207,10 +207,10 @@ class Board:
                     icon = pygame.transform.scale(
                         piece.texture, (piece_size, piece_size))
                     screen.blit(
-                        icon, (current_x + i * horizontal_stack_offset, y_start))
+                        icon, (current_x + i * horizontal_stack_offset_h, y_start))
 
                 # Move current_x forward based on how wide this group was
-                group_width = len(group) * horizontal_stack_offset + piece_size
+                group_width = len(group) * horizontal_stack_offset_h + piece_size
                 group_spacing = -10
                 current_x += group_width + group_spacing  # extra spacing between groups
 
@@ -223,10 +223,10 @@ class Board:
         y_start_bottom = 8 * cell - piece_size - 5
         draw_stacked_groups(captured_white, x_start=10, y_start=y_start_bottom)
 
-    def draw(self, screen, width, height, offset):
+    def draw(self, screen, width, height, offset_h, offset_v):
         alpha_surface = pygame.Surface((width, height), pygame.SRCALPHA)
-        self.__draw_board(screen, alpha_surface, width, height, offset)
-        self.__draw_pieces(screen, offset)
+        self.__draw_board(screen, alpha_surface, width, height, offset_h, offset_v)
+        self.__draw_pieces(screen, offset_h, offset_v)
         self.__draw_captured_pieces(screen)
 
     def __promote(self, mouse_x, mouse_y):
@@ -271,14 +271,15 @@ class Board:
                 self.move_history.append(notation)
                 print("Move:", notation)
 
-    def handle_click(self, mouse_x, mouse_y, offset):
+    def handle_click(self, mouse_x, mouse_y, offset_h, offset_v):
         global sound_to_play
         sound_to_play = ''
 
-        mouse_x -= offset
+        mouse_x -= offset_h
+        mouse_y -= offset_v
 
         if self.pawn_promotion:
-            self.__promote(mouse_x + offset, mouse_y)
+            self.__promote(mouse_x + offset_h, mouse_y + offset_v)
             return
 
         cell_x = mouse_x // self.cell_size
