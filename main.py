@@ -11,78 +11,8 @@ ROWS, COLS = 8, 8
 CELL_SIZE = WIDTH // COLS
 
 GRAY = (50, 50, 50)
-TOTAL_TIME = 600  # Time in seconds
+TOTAL_TIME = 1000  # Time in seconds
 FLIP_DELAY_MS = 600  # Delay in milliseconds
-
-
-def parse_move(board, notation):
-    current_color = board.current_turn
-
-    piece_map = {
-        'K': 'king',
-        'Q': 'queen',
-        'R': 'rook',
-        'B': 'bishop',
-        'N': 'knight'
-    }
-
-    # Regex pattern to match standard notation
-    pattern = r'^(?P<piece>[KQRBN])?'         # Optional piece letter
-    pattern += r'(?P<origin_file>[a-h])?'      # Optional disambiguation file
-    pattern += r'(?P<origin_rank>[1-8])?'      # Optional disambiguation rank
-    pattern += r'(x)?'                         # Optional capture indicator
-    pattern += r'(?P<dest_file>[a-h])'         # Destination file
-    pattern += r'(?P<dest_rank>[1-8])'         # Destination rank
-    pattern += r'(=?(?P<promotion>[QRBN]))?'   # Optional promotion
-    pattern += r'(?P<check>[+#])?$'            # Optional check/checkmate
-
-    match = re.match(pattern, notation)
-    if not match:
-        raise ValueError(f"Invalid move notation: {notation}")
-
-    piece_letter = match.group('piece')
-    origin_file = match.group('origin_file')
-    origin_rank = match.group('origin_rank')
-    dest_file = match.group('dest_file')
-    dest_rank = match.group('dest_rank')
-    promotion = match.group('promotion')
-
-    piece_name = piece_map.get(piece_letter, 'pawn')
-    dest_x = ord(dest_file) - ord('a')
-    dest_y = 8 - int(dest_rank)
-
-    candidates = []
-
-    for piece in board.pieces[current_color]:
-        if piece.name != piece_name:
-            continue
-
-        # Disambiguation filter
-        if origin_file and piece.x != ord(origin_file) - ord('a'):
-            continue
-        if origin_rank and piece.y != 8 - int(origin_rank):
-            continue
-
-        valid_moves = piece.get_valid_moves(board)
-        if (dest_x, dest_y) in valid_moves:
-            candidates.append(piece)
-
-    if len(candidates) == 1:
-        return [(candidates[0].x, candidates[0].y), (dest_x, dest_y), promotion]
-    elif len(candidates) > 1:
-        raise Exception(
-            f"Ambiguous move: {notation}, multiple pieces can go there.")
-    else:
-        raise Exception(f"No valid piece found for: {notation}")
-
-
-def make_moves(moves_list, board):
-    for move in moves_list:
-        current_coords, next_coords, _ = parse_move(board, move)
-        board.selected_piece = board.piece_at(*current_coords)
-        board.available_moves = board.selected_piece.get_valid_moves(board)
-        x, y = next_coords
-        board._move_piece(x, y)
 
 
 def format_time(seconds):
@@ -147,7 +77,8 @@ def main():
     pygame.display.set_caption("Chess")
     clock = pygame.time.Clock()
 
-    board = Board(CELL_SIZE, OFFSET_H)
+    fen = "r3k2r/pp4pp/8/8/8/8/PP4PP/R3K2R w KQkq - 0 1"
+    board = Board(CELL_SIZE, OFFSET_H, fen)
 
     running = True
     game_over = False
@@ -158,9 +89,6 @@ def main():
     result = ""
     termination = ""
     flip_timer = 0
-
-    # moves_list = ['e4', 'e5', 'Nf3', 'Nc6']
-    # make_moves(moves_list, board)
 
     def restart_game():
         board.initialize_pieces()

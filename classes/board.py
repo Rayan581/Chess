@@ -12,7 +12,7 @@ sound_to_play = ''
 
 
 class Board:
-    def __init__(self, cell_size, offset_h):
+    def __init__(self, cell_size, offset_h, fen=None):
         self.cell_size = cell_size
         self.pieces = {}
         self.captured_pieces = {}
@@ -28,7 +28,10 @@ class Board:
         self.move_history = []
         self.last_captured = None
         self.moved_piece_prev_coord = None
-        self.initialize_pieces()
+        if not fen:
+            self.initialize_pieces()
+        else:
+            self.setup_from_fen(fen)
 
         self.piece_points = {
             'pawn': 1,
@@ -80,6 +83,45 @@ class Board:
             current_color = 'black'
             y = 0
             p_y = 1
+
+    def setup_from_fen(self, fen):
+        """
+        Setup board pieces based on the given FEN string.
+        """
+        self.pieces = {
+            'white': [],
+            'black': []
+        }
+        self.captured_pieces = {
+            'white': [],
+            'black': []
+        }
+
+        piece_map = {
+            'p': 'pawn',
+            'n': 'knight',
+            'b': 'bishop',
+            'r': 'rook',
+            'q': 'queen',
+            'k': 'king'
+        }
+
+        rows = fen.split()[0].split("/")  # only piece placement part
+        for y, row in enumerate(rows):
+            x = 0
+            for char in row:
+                if char.isdigit():
+                    x += int(char)  # empty squares
+                else:
+                    color = "white" if char.isupper() else "black"
+                    name = piece_map[char.lower()]
+                    # create piece at (x, y)
+                    new_piece = Piece(color, name, x, y)
+
+                    self.pieces[color].append(new_piece)
+
+                    x += 1
+        self.__calculate_valid_moves()
 
     def _draw_font(self, screen, text, x, y, size, _font, color):
         font = pygame.font.Font(_font, size)
