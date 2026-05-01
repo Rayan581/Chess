@@ -78,11 +78,12 @@ class Board:
 
             self.pieces[current_color] = pieces
             self.captured_pieces[current_color] = []
-            self.__calculate_valid_moves()
 
             current_color = 'black'
             y = 0
             p_y = 1
+
+        self.__calculate_valid_moves()
 
     def setup_from_fen(self, fen):
         """
@@ -106,7 +107,17 @@ class Board:
             'k': 'king'
         }
 
-        rows = fen.split()[0].split("/")  # only piece placement part
+        parts = fen.split()
+
+        placement = parts[0]
+        active_color = parts[1] if len(parts) > 1 else 'w'
+
+        # castling = parts[2] if len(parts) > 2 else '-'
+        # en_passant = parts[3] if len(parts) > 3 else '-'
+        # halfmove_clock = int(parts[4]) if len(parts) > 4 else 0
+        # fullmove_number = int(parts[5]) if len(parts) > 5 else 1 # Not used currently
+
+        rows = placement.split("/")  # only piece placement part
         for y, row in enumerate(rows):
             x = 0
             for char in row:
@@ -121,6 +132,9 @@ class Board:
                     self.pieces[color].append(new_piece)
 
                     x += 1
+
+        self.current_turn = 'white' if active_color == 'w' else 'black'
+
         self.__calculate_valid_moves()
 
     def _draw_font(self, screen, text, x, y, size, _font, color):
